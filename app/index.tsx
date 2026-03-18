@@ -1,14 +1,10 @@
 import { useEffect } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
-import { router } from 'expo-router';
 import { Colors } from '../constants/colors';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
-import { useAuthStore } from '../stores/auth.store';
 
 export default function SplashScreen() {
-  const loadToken = useAuthStore((state) => state.loadToken);
-  const token = useAuthStore((state) => state.token);
   const fadeAnim = new Animated.Value(0);
   const scaleAnim = new Animated.Value(0.8);
 
@@ -17,28 +13,15 @@ export default function SplashScreen() {
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         tension: 50,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start();
-
-    const init = async () => {
-      await loadToken();
-      setTimeout(() => {
-        if (token) {
-          router.replace('/(tabs)/home');
-        } else {
-          router.replace('/(auth)/login');
-        }
-      }, 2000);
-    };
-
-    init();
   }, []);
 
   return (
@@ -68,7 +51,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   wave1: {
     position: 'absolute',
     width: 400,
@@ -99,7 +81,6 @@ const styles = StyleSheet.create({
     bottom: 100,
     right: -40,
   },
-
   content: {
     alignItems: 'center',
   },
