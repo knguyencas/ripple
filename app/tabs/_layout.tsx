@@ -1,68 +1,82 @@
 import { Tabs } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
+
+function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
+  return (
+    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+      <Text style={styles.emoji}>{emoji}</Text>
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: Colors.foam,
-          borderTopColor: Colors.border,
-          borderTopWidth: 1,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 60,
-        },
+        tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: Colors.teal,
         tabBarInactiveTintColor: Colors.muted,
-        tabBarLabelStyle: {
-          fontFamily: 'Nunito_600SemiBold',
-          fontSize: 11,
-        },
+        tabBarLabelStyle: styles.tabLabel,
       }}
     >
       <Tabs.Screen
         name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <TabIcon emoji="🏠" color={color} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="log"
         options={{
           title: 'Log',
-          tabBarIcon: ({ color }) => (
-            <TabIcon emoji="✍️" color={color} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon emoji="✍️" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="insights"
         options={{
           title: 'Insights',
-          tabBarIcon: ({ color }) => (
-            <TabIcon emoji="📊" color={color} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon emoji="📊" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
           title: 'Chat AI',
-          tabBarIcon: ({ color }) => (
-            <TabIcon emoji="💬" color={color} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon emoji="💬" focused={focused} />,
         }}
       />
     </Tabs>
   );
 }
 
-function TabIcon({ emoji, color }: { emoji: string; color: string }) {
-  const { Text } = require('react-native');
-  return <Text style={{ fontSize: 20, opacity: color === Colors.teal ? 1 : 0.5 }}>{emoji}</Text>;
-}
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: Colors.foam,
+    borderTopColor: Colors.border,
+    borderTopWidth: 1,
+    paddingBottom: 8,
+    paddingTop: 6,
+    height: 64,
+  },
+  tabLabel: {
+    fontFamily: 'Nunito_600SemiBold',
+    fontSize: 11,
+  },
+  iconWrap: {
+    width: 36,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  iconWrapActive: {
+    backgroundColor: Colors.surface,
+  },
+  emoji: {
+    fontSize: 18,
+  },
+});
