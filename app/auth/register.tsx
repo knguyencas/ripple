@@ -16,7 +16,6 @@ export default function RegisterScreen() {
   email: '',
   username: '',
   password: '',
-  ageGroup: '18-22',
 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -87,26 +86,6 @@ export default function RegisterScreen() {
             placeholder="••••••••"
             secureTextEntry
           />
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Độ tuổi</Text>
-            <View style={styles.ageRow}>
-              {ageGroups.map((age) => (
-                <TouchableOpacity
-                  key={age}
-                  style={[styles.ageBtn, form.ageGroup === age && styles.ageBtnActive]}
-                  onPress={() => update('ageGroup', age)}
-                >
-                  <Text style={[
-                    styles.ageBtnText,
-                    form.ageGroup === age && styles.ageBtnTextActive
-                  ]}>
-                    {age}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
