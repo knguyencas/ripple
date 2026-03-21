@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { homeStyles as s } from '../../styles/home.styles';
 import { useAuthStore } from '../../stores/auth.store';
-import MoodWheel from '../../components/mood/MoodWheel';
+import MoodWheel, { MOODS } from '../../components/mood/MoodWheel';
 
 const HABITS = [
   { emoji: '💧', name: 'Uống nước', sub: 'Mục tiêu 8 ly/ngày' },
@@ -14,7 +14,7 @@ const HABITS = [
 export default function HomeScreen() {
   const { user } = useAuthStore();
   const [showWheel, setShowWheel] = useState(false);
-  const [todayMood, setTodayMood] = useState<{ emoji: string; label: string; score: number } | null>(null);
+  const [todayMood, setTodayMood] = useState<typeof MOODS[0] | null>(null);
   const [habits, setHabits] = useState([false, false, false]);
 
   const displayName = user?.displayName || user?.username || 'bạn';
@@ -31,7 +31,7 @@ export default function HomeScreen() {
     return 'Chào buổi tối 🌙';
   };
 
-  const handleMoodConfirm = (mood: { emoji: string; label: string; score: number }) => {
+  const handleMoodConfirm = (mood: typeof MOODS[0]) => {
     setTodayMood(mood);
     setShowWheel(false);
   };
@@ -70,7 +70,7 @@ export default function HomeScreen() {
           {todayMood ? (
             <View style={{ alignItems: 'center', paddingVertical: 8 }}>
               <Text style={{ fontSize: 48, marginBottom: 4 }}>{todayMood.emoji}</Text>
-              <Text style={s.quickLogTitle}>{todayMood.label}</Text>
+              <Text style={s.quickLogTitle}>{todayMood.name}</Text>
               <Text style={{ fontFamily: 'Nunito_400Regular', fontSize: 12, color: '#9BB5C4' }}>
                 Nhấn để thay đổi
               </Text>
@@ -88,10 +88,10 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={s.logBtn}
-          onPress={() => router.push('/(tabs)/log')}
+          onPress={() => router.push('/tabs/journal/new')}
         >
           <Text style={s.logBtnText}>
-            {todayMood ? 'Tiếp tục ghi log ✍️' : 'Ghi nhật ký hôm nay'}
+            {todayMood ? 'Tiếp tục ghi log' : 'Ghi nhật ký hôm nay'}
           </Text>
         </TouchableOpacity>
 
