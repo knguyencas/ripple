@@ -1,7 +1,8 @@
 import { useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, Animated,
-  PanResponder, Dimensions, StyleSheet, Platform
+  PanResponder, Dimensions, StyleSheet, Platform,
+  GestureResponderEvent
 } from 'react-native';
 import { moodWheelStyles as s } from '../../styles/mood-wheel.styles';
 import { Colors } from '../../constants/colors';
@@ -105,8 +106,10 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: (e) => { lastX.current = e.nativeEvent.pageX; },
-    onPanResponderMove: (e) => {
+    onPanResponderGrant: (e: GestureResponderEvent) => {
+      lastX.current = e.nativeEvent.pageX;
+    },
+    onPanResponderMove: (e: GestureResponderEvent) => {
       const dx = e.nativeEvent.pageX - lastX.current;
       lastX.current = e.nativeEvent.pageX;
       currentDeg.current += dx * 0.4;
@@ -161,7 +164,6 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
 
           <View style={ls.wheelClip} {...panResponder.panHandlers}>
             <Animated.View style={[ls.wheelInner, { transform: [{ rotate: rotateDeg }] }]}>
-
               <WheelBackground />
 
               {MOODS.map((mood, i) => {

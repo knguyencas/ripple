@@ -1,12 +1,16 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Colors } from '../constants/colors';
 import { Typography } from '../constants/typography';
 import { Spacing } from '../constants/spacing';
+import { useAuthStore } from '../stores/auth.store';
 
 export default function SplashScreen() {
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.8);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const { token } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
     Animated.parallel([
@@ -21,7 +25,15 @@ export default function SplashScreen() {
         friction: 8,
         useNativeDriver: false,
       }),
-    ]).start();
+    ]).start(() => {
+      setTimeout(() => {
+        if (token) {
+          router.replace('/tabs/home');
+        } else {
+          router.replace('/auth/login');
+        }
+      }, 500);
+    });
   }, []);
 
   return (

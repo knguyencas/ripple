@@ -80,9 +80,9 @@ export default function DisplayNameScreen() {
         { displayName: displayName || undefined, ageGroup: finalAge },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      router.replace('/(tabs)/home');
+      router.replace('/tabs/home');
     } catch {
-      router.replace('/(tabs)/home');
+      router.replace('/tabs/home');
     } finally {
       setLoading(false);
     }
@@ -126,7 +126,7 @@ export default function DisplayNameScreen() {
             <Text style={s.bigEmoji}>👋</Text>
             <Text style={s.title}>Bạn muốn được gọi là gì?</Text>
             <Text style={s.subtitle}>
-              Tên hiển thị — có thể là tên thật{'\n'}hoặc bất cứ thứ gì bạn thích.
+              Tên hiển thị có thể là bất cứ thứ gì bạn thích
             </Text>
             <TextInput
               style={s.input}
@@ -153,7 +153,7 @@ export default function DisplayNameScreen() {
             <Text style={s.bigEmoji}>🎂</Text>
             <Text style={s.title}>Bạn bao nhiêu tuổi?</Text>
             <Text style={s.subtitle}>
-              Giúp app hiểu bạn hơn{'\n'}và cá nhân hóa trải nghiệm.
+              Giúp tôi hiểu bạn hơn{'\n'}và cá nhân hóa trải nghiệm.
             </Text>
 
             {showManual ? (
@@ -175,9 +175,9 @@ export default function DisplayNameScreen() {
             ) : (
               <TouchableOpacity activeOpacity={1} onPress={handleTapAge}>
                 <View style={s.pickerWrap}>
-                  <View style={[s.pickerOverlayTop, { pointerEvents: 'none' }]} />
-                  <View style={[s.pickerOverlayBottom, { pointerEvents: 'none' }]} />
-                  <View style={[s.pickerSelector, { pointerEvents: 'none' }]} />
+                  <View style={[s.pickerOverlayTop, { pointerEvents: 'none' } as any]} />
+                  <View style={[s.pickerOverlayBottom, { pointerEvents: 'none' } as any]} />
+                  <View style={[s.pickerSelector, { pointerEvents: 'none' } as any]} />
                   <FlatList
                     ref={listRef}
                     data={AGES}

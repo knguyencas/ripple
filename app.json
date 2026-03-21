@@ -22,7 +22,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.knguyencas.ripple"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -31,6 +32,15 @@
       "expo-router",
       "expo-secure-store",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "996f52f0-2137-4552-a075-f7d5b3583a71"
+      }
+    },
+    "owner": "knguyencas"
   }
 }
