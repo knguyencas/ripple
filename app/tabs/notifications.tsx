@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { commonStyles as c } from '../../styles/shared/common.styles';
 import { profileStyles as s } from '../../styles/profile/profile.styles';
 import { profilePageStyles as p } from '../../styles/profile/profile-pages.styles';
@@ -20,6 +20,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from '../../services/profile/notifications.service';
+import AppBackButton from '../../components/shared/AppBackButton';
 
 function formatNotificationDate(value: string): string {
   const date = new Date(value);
@@ -85,9 +86,7 @@ export default function NotificationsScreen() {
         }
       >
         <View style={s.header}>
-          <TouchableOpacity onPress={() => router.back()} style={p.backButton}>
-            <Text style={p.backButtonText}>← Quay lại</Text>
-          </TouchableOpacity>
+          <AppBackButton />
           <Text style={s.headerTitle}>Thông báo</Text>
         </View>
 
