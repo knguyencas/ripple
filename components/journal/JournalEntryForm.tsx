@@ -8,17 +8,16 @@ import { Audio } from 'expo-av';
 import MoodWheel, { MOODS } from '../mood/MoodWheel';
 import api from '../../services/core/api';
 import { journalFormStyles as s, J } from '../../styles/journal/journal.styles';
-import { uploadLogMedia } from '../../services/journal/log-media.service';
+import { uploadLogMedia, type LogMediaUploadInput } from '../../services/journal/log-media.service';
+import { MicLineIcon } from '../shared/AppIcons';
 
-export interface AudioItem {
+export interface AudioItem extends LogMediaUploadInput {
   id?:   string;
-  uri:   string;
   label: string;
 }
 
-export interface PhotoItem {
+export interface PhotoItem extends LogMediaUploadInput {
   id?:      string;
-  uri:      string;
   uploaded: boolean;
 }
 
@@ -95,30 +94,35 @@ export default function JournalEntryForm({
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
     });
     if (result.canceled) return;
 
-    const newUris = result.assets.map(a => a.uri);
     const slots   = (9 - photos.length);
-    const picked  = newUris.slice(0, slots);
+    const picked: PhotoItem[] = result.assets.slice(0, slots).map((asset) => ({
+      uri: asset.uri,
+      uploaded: false,
+      file: asset.file,
+      fileName: asset.fileName,
+      mimeType: asset.mimeType,
+    }));
 
     if (logId) {
       setUploadingPhoto(true);
       const uploaded: PhotoItem[] = [];
-      for (const uri of picked) {
-        const res = await uploadLogMedia(logId, uri, 'photo');
+      for (const photo of picked) {
+        const res = await uploadLogMedia(logId, photo, 'photo');
         uploaded.push(res
-          ? { id: res.id, uri: res.url, uploaded: true }
-          : { uri, uploaded: false }
+          ? { ...photo, id: res.id, uploaded: true }
+          : photo
         );
       }
       setPhotos(prev => [...prev, ...uploaded]);
       setUploadingPhoto(false);
     } else {
-      setPhotos(prev => [...prev, ...picked.map(uri => ({ uri, uploaded: false }))]);
+      setPhotos(prev => [...prev, ...picked]);
     }
   };
 
@@ -158,9 +162,9 @@ export default function JournalEntryForm({
       if (!uri) return;
 
       if (logId) {
-        const res = await uploadLogMedia(logId, uri, 'audio');
+        const res = await uploadLogMedia(logId, { uri }, 'audio');
         if (res) {
-          setAudios(prev => [...prev, { id: res.id, uri: res.url, label: res.label ?? `Ghi âm ${prev.length + 1}` }]);
+          setAudios(prev => [...prev, { id: res.id, uri, label: res.label ?? `Ghi âm ${prev.length + 1}` }]);
           return;
         }
       }
@@ -317,11 +321,13 @@ export default function JournalEntryForm({
               style={[s.micBtn, isRecording && s.micBtnActive]}
               onPress={isRecording ? stopRecording : startRecording}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={isRecording ? 'Dừng thu âm' : 'Bắt đầu thu âm'}
             >
-              <Text style={s.micIcon}>MIC</Text>
+              <MicLineIcon size={28} color="#FFFFFF" />
             </TouchableOpacity>
           </Animated.View>
-          <Text style={s.voiceHint}>
+          <Text style={[s.voiceHint, isRecording && s.voiceHintActive]}>
             {isRecording
               ? '● Đang thu âm… nhấn để dừng'
               : audios.length > 0

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity,
-  Alert, Animated, ScrollView, Platform,
+  ActivityIndicator, Alert, Animated, ScrollView, Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,12 +9,14 @@ import JournalEntryForm, { JournalFormData } from '../../../components/journal/J
 import api from '../../../services/core/api';
 import { uploadLogMedia } from '../../../services/journal/log-media.service';
 import { journalHeaderStyles as h, journalToastStyles as t, journalNewStyles as s } from '../../../styles/journal/journal.styles';
+import { CheckLineIcon } from '../../../components/shared/AppIcons';
 
 export default function NewJournalScreen() {
   const [formData, setFormData] = useState<JournalFormData>({
     mood: null, note: '', photos: [], audios: [],
   });
   const [loading, setLoading]         = useState(false);
+  const [createdLogId, setCreatedLogId] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const toastAnim = useRef(new Animated.Value(0)).current;
 
@@ -40,25 +42,65 @@ export default function NewJournalScreen() {
     if (!canSave || loading) return;
     setLoading(true);
     try {
-      const res = await api.post('/logs', {
+      let logId = createdLogId;
+      const payload = {
         mood:      formData.mood?.name  ?? 'neutral',
         moodScore: formData.mood?.score ?? 3,
         factors:   [],
         note:      formData.note.trim() || null,
-      });
+      };
 
-      const logId = res.data?.id;
       if (logId) {
-        const photoUploads = formData.photos
-          .filter((p) => !p.id)
-          .map((p) => uploadLogMedia(logId, p.uri, 'photo'));
-        const audioUploads = formData.audios
-          .filter((a) => !a.id)
-          .map((a) => uploadLogMedia(logId, a.uri, 'audio'));
-        await Promise.all([...photoUploads, ...audioUploads]);
+        await api.put(`/logs/${logId}`, payload);
+      } else {
+        const res = await api.post('/logs', payload);
+        logId = res.data?.id ?? null;
+        if (logId) setCreatedLogId(logId);
       }
 
-      setToastVisible(true);
+      let mediaFailed = 0;
+      let mediaTotal = 0;
+      if (logId) {
+        const photoTargets = formData.photos.filter((p) => !p.id);
+        const audioTargets = formData.audios.filter((a) => !a.id);
+        mediaTotal = photoTargets.length + audioTargets.length;
+
+        const photoResults = await Promise.all(
+          photoTargets.map(async (p) => ({ source: p, result: await uploadLogMedia(logId, p, 'photo') }))
+        );
+        const audioResults = await Promise.all(
+          audioTargets.map(async (a) => ({ source: a, result: await uploadLogMedia(logId, a, 'audio') }))
+        );
+        const uploadedPhotos = photoResults.filter(({ result }) => result);
+        const uploadedAudios = audioResults.filter(({ result }) => result);
+
+        if (uploadedPhotos.length || uploadedAudios.length) {
+          setFormData((prev) => ({
+            ...prev,
+            photos: prev.photos.map((photo) => {
+              const uploaded = uploadedPhotos.find(({ source }) => source === photo);
+              return uploaded?.result ? { ...photo, id: uploaded.result.id, uploaded: true } : photo;
+            }),
+            audios: prev.audios.map((audio) => {
+              const uploaded = uploadedAudios.find(({ source }) => source === audio);
+              return uploaded?.result
+                ? { ...audio, id: uploaded.result.id, label: uploaded.result.label ?? audio.label }
+                : audio;
+            }),
+          }));
+        }
+
+        mediaFailed = [...photoResults, ...audioResults].filter(({ result }) => result == null).length;
+      }
+
+      if (mediaFailed > 0) {
+        Alert.alert(
+          'Một số file chưa lưu được',
+          `Nội dung nhật ký đã lưu, nhưng ${mediaFailed}/${mediaTotal} file media chưa upload thành công. File vẫn còn trên màn hình này, vui lòng bấm lưu lại để thử lại.`
+        );
+      } else {
+        setToastVisible(true);
+      }
     } catch (error: any) {
       if (error?.response?.status === 409) {
         const existingId = error.response.data?.existingId;
@@ -114,7 +156,11 @@ export default function NewJournalScreen() {
             onPress={handleSubmit}
             disabled={loading || !canSave}
           >
-            <Text style={h.saveBtnText}>{loading ? '…' : '✓'}</Text>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <CheckLineIcon size={19} />
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -125,7 +171,7 @@ export default function NewJournalScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <JournalEntryForm onChange={setFormData} />
+        <JournalEntryForm logId={createdLogId ?? undefined} onChange={setFormData} />
         <View style={s.bottomSpacer} />
       </ScrollView>
 

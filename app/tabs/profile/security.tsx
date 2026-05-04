@@ -20,6 +20,14 @@ import {
   profileSecurityPageStyles as ps,
 } from '../../../styles/profile/profile-pages.styles';
 import api from '../../../services/core/api';
+import AppBackButton from '../../../components/shared/AppBackButton';
+import { useAuthStore } from '../../../stores/auth.store';
+import {
+  hasCompleteMediaKeyEnvelope,
+  hydrateMediaKeyFromStorage,
+  isMediaKeyUnlocked,
+  rewrapMediaKey,
+} from '../../../services/journal/media-crypto.service';
 
 export default function SecurityScreen() {
   const [current, setCurrent] = useState('');
@@ -49,12 +57,37 @@ export default function SecurityScreen() {
 
     setSaving(true);
     try {
-      await api.put('/users/password', { currentPassword: current, newPassword: next });
+      const user = useAuthStore.getState().user;
+      const payload: Record<string, unknown> = {
+        currentPassword: current,
+        newPassword: next,
+      };
+      let newEnvelope: Awaited<ReturnType<typeof rewrapMediaKey>> | null = null;
+
+      if (hasCompleteMediaKeyEnvelope(user)) {
+        if (!isMediaKeyUnlocked()) {
+          await hydrateMediaKeyFromStorage();
+        }
+        if (!isMediaKeyUnlocked()) {
+          setError('Để bảo vệ media đã mã hoá, vui lòng đăng xuất và đăng nhập lại trước khi đổi mật khẩu.');
+          setSaving(false);
+          return;
+        }
+        newEnvelope = await rewrapMediaKey(next);
+        Object.assign(payload, newEnvelope);
+      }
+
+      await api.put('/users/password', payload);
+
+      if (newEnvelope) {
+        await useAuthStore.getState().updateUser(newEnvelope);
+      }
+
       Alert.alert('Thành công', 'Mật khẩu đã được thay đổi.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (e: any) {
-      setError(e?.response?.data?.error || 'Không thể đổi mật khẩu. Vui lòng thử lại.');
+      setError(e?.response?.data?.error || e?.message || 'Không thể đổi mật khẩu. Vui lòng thử lại.');
     } finally {
       setSaving(false);
     }
@@ -71,9 +104,7 @@ export default function SecurityScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={s.header}>
-            <TouchableOpacity onPress={() => router.back()} style={p.backButton}>
-              <Text style={p.backButtonText}>← Quay lại</Text>
-            </TouchableOpacity>
+            <AppBackButton />
             <Text style={s.headerTitle}>Bảo mật & Mật khẩu</Text>
           </View>
 

@@ -10,6 +10,8 @@ import { MOODS } from '../../../components/mood/MoodWheel';
 import { journalIndexStyles as s, J } from '../../../styles/journal/journal.styles';
 import { getMoodEmojiByName } from '../../../utils/shared/mood.utils';
 import { groupLogsByMonth } from '../../../utils/journal/journal.utils';
+import { useTodayJournal } from '../../../hooks/journal/useTodayJournal';
+import { SoraWithChecklist } from '../../../components/shared/Sora';
 
 interface Log {
   id: string;
@@ -24,16 +26,12 @@ export default function JournalScreen() {
   const [logs, setLogs]           = useState<Log[]>([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [todayLogId, setTodayLogId] = useState<string | null>(null);
+  const todayJournal = useTodayJournal();
 
   const fetchLogs = async () => {
     try {
-      const [logsRes, todayRes] = await Promise.all([
-        api.get('/logs?limit=50'),
-        api.get('/logs/today'),
-      ]);
+      const logsRes = await api.get('/logs?limit=50');
       setLogs(logsRes.data ?? []);
-      setTodayLogId(todayRes.data?.log?.id ?? null);
     } catch (e) {
       console.error('fetchLogs error:', e);
     } finally {
@@ -43,12 +41,13 @@ export default function JournalScreen() {
   };
 
   useFocusEffect(useCallback(() => { fetchLogs(); }, []));
-  const onRefresh = () => { setRefreshing(true); fetchLogs(); };
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchLogs();
+    void todayJournal.refreshTodayJournal();
+  };
 
-  const goWrite = () =>
-    todayLogId
-      ? router.push(`/tabs/journal/${todayLogId}?edit=true`)
-      : router.push('/tabs/journal/new');
+  const goWrite = todayJournal.openTodayJournal;
 
   const grouped = groupLogsByMonth(logs);
 
@@ -70,7 +69,9 @@ export default function JournalScreen() {
       >
 
         <View style={s.illustWrap}>
-          <View style={s.illustPlaceholder} />
+          <View style={s.illustHero}>
+            <SoraWithChecklist size={168} idPrefix="journal-hero-sora" />
+          </View>
           <Text style={s.pageTitle}>Journal</Text>
         </View>
 
@@ -78,11 +79,11 @@ export default function JournalScreen() {
           <TouchableOpacity style={s.actionCard} onPress={goWrite} activeOpacity={0.85}>
             <View style={s.actionCardLeft}>
               <Text style={s.actionCardTitle}>
-                {todayLogId ? 'Chỉnh sửa nhật ký hôm nay' : 'Ghi lại cảm xúc & suy nghĩ của bạn'}
+                {todayJournal.copy.title}
               </Text>
               <TouchableOpacity style={s.actionBtn} onPress={goWrite}>
                 <Text style={s.actionBtnText}>
-                  {todayLogId ? 'Tiếp tục viết' : 'Bắt đầu viết'}
+                  {todayJournal.copy.buttonLabel}
                 </Text>
               </TouchableOpacity>
             </View>

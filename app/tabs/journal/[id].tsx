@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image,
-  ActivityIndicator, Alert, Animated, Platform,
+  ActivityIndicator, Alert, Animated, FlatList, Modal,
+  NativeScrollEvent, NativeSyntheticEvent, Platform, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import JournalEntryForm, { JournalFormData, AudioItem } from '../../../components/journal/JournalEntryForm';
+import { Audio } from 'expo-av';
+import JournalEntryForm, { JournalFormData, AudioItem, PhotoItem } from '../../../components/journal/JournalEntryForm';
 import {
   J,
   journalHeaderStyles as h,
@@ -14,10 +16,23 @@ import {
 } from '../../../styles/journal/journal.styles';
 import { MOODS } from '../../../components/mood/MoodWheel';
 import api from '../../../services/core/api';
+import { uploadLogMedia } from '../../../services/journal/log-media.service';
+import { decryptRemoteMedia, revokeDecryptedMediaUri } from '../../../services/journal/media-crypto.service';
+import AppIconButton from '../../../components/shared/AppIconButton';
+import {
+  CheckLineIcon,
+  ChevronLeftLineIcon,
+  ChevronRightLineIcon,
+  CloseLineIcon,
+  PauseLineIcon,
+  PlayLineIcon,
+} from '../../../components/shared/AppIcons';
+import { confirmDestructiveAction } from '../../../utils/shared/confirm-action.utils';
 
 export default function LogDetailScreen() {
   const router = useRouter();
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
+  const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
 
   const [log,       setLog]       = useState<any>(null);
   const [loading,   setLoading]   = useState(true);
@@ -29,6 +44,13 @@ export default function LogDetailScreen() {
     mood: null, note: '', photos: [], audios: [],
   });
 
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+  const [playingAudioKey, setPlayingAudioKey] = useState<string | null>(null);
+  const [loadingAudioKey, setLoadingAudioKey] = useState<string | null>(null);
+  const imageListRef = useRef<FlatList<PhotoItem>>(null);
+  const audioSoundRef = useRef<Audio.Sound | null>(null);
+  const decryptedMediaUrisRef = useRef<string[]>([]);
   const [toastVisible, setToastVisible] = useState(false);
   const toastAnim = useRef(new Animated.Value(0)).current;
 
@@ -45,17 +67,132 @@ export default function LogDetailScreen() {
     return () => clearTimeout(timer);
   }, [toastVisible]);
 
+  useEffect(() => {
+    return () => {
+      void stopAudio();
+      clearDecryptedMediaUris();
+    };
+  }, []);
+
+  const clearDecryptedMediaUris = () => {
+    decryptedMediaUrisRef.current.forEach(revokeDecryptedMediaUri);
+    decryptedMediaUrisRef.current = [];
+  };
+
+  const getAudioKey = (audio: AudioItem, index: number) => audio.id ?? `${audio.uri}-${index}`;
+
+  const stopAudio = async () => {
+    const sound = audioSoundRef.current;
+    audioSoundRef.current = null;
+    setPlayingAudioKey(null);
+    if (!sound) return;
+    try {
+      await sound.stopAsync().catch(() => {});
+      await sound.unloadAsync().catch(() => {});
+    } catch {}
+  };
+
+  const toggleAudio = async (audio: AudioItem, index: number) => {
+    const key = getAudioKey(audio, index);
+    if (playingAudioKey === key) {
+      await stopAudio();
+      return;
+    }
+
+    setLoadingAudioKey(key);
+    await stopAudio();
+    try {
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audio.uri },
+        { shouldPlay: true }
+      );
+      audioSoundRef.current = sound;
+      setPlayingAudioKey(key);
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          void stopAudio();
+        }
+      });
+    } catch {
+      Alert.alert('Lỗi', 'Không thể phát file ghi âm.');
+    } finally {
+      setLoadingAudioKey(null);
+    }
+  };
+
+  const openPhotoViewer = (index: number) => {
+    setActivePhotoIndex(index);
+    setViewerVisible(true);
+  };
+
+  const closePhotoViewer = () => {
+    setViewerVisible(false);
+  };
+
+  const scrollToPhoto = (index: number) => {
+    if (index < 0 || index >= formData.photos.length) return;
+    setActivePhotoIndex(index);
+    imageListRef.current?.scrollToIndex({ index, animated: true });
+  };
+
+  const handlePhotoScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(event.nativeEvent.contentOffset.x / Math.max(1, viewportWidth));
+    setActivePhotoIndex(Math.max(0, Math.min(index, formData.photos.length - 1)));
+  };
+
   const fetchLog = async (showErrorAlert = true) => {
     try {
       const res  = await api.get(`/logs/${id}`);
       const data = res.data;
       setLog(data);
 
+      clearDecryptedMediaUris();
+
+      const photos = await Promise.all((data.photoAttachments ?? data.photos ?? []).map(async (p: any) => {
+        let uri = p.url ?? p.uri;
+        if (p.encrypted && p.iv && p.url) {
+          try {
+            uri = await decryptRemoteMedia(p.url, p.iv, p.mimeType);
+            decryptedMediaUrisRef.current.push(uri);
+          } catch (error) {
+            console.warn('decrypt photo failed:', error);
+          }
+        }
+        return {
+          id: p.id,
+          uri,
+          uploaded: true,
+          encrypted: Boolean(p.encrypted),
+          iv: p.iv ?? null,
+          mimeType: p.mimeType ?? null,
+        };
+      }));
+      const audios = await Promise.all((data.audioRecordings ?? data.audios ?? []).map(async (a: any) => {
+        let uri = a.url ?? a.uri;
+        if (a.encrypted && a.iv && a.url) {
+          try {
+            uri = await decryptRemoteMedia(a.url, a.iv, a.mimeType);
+            decryptedMediaUrisRef.current.push(uri);
+          } catch (error) {
+            console.warn('decrypt audio failed:', error);
+          }
+        }
+        return {
+          id: a.id,
+          uri,
+          label: a.label ?? '',
+          encrypted: Boolean(a.encrypted),
+          iv: a.iv ?? null,
+          mimeType: a.mimeType ?? null,
+        };
+      })) as AudioItem[];
+
       setFormData({
         mood:   MOODS.find(m => m.name === data.mood) ?? null,
         note:   data.note ?? '',
-        photos: data.photos ?? [],
-        audios: (data.audios ?? []) as AudioItem[],
+        photos,
+        audios,
       });
     } catch {
       if (showErrorAlert && loading) {
@@ -67,6 +204,43 @@ export default function LogDetailScreen() {
     }
   };
 
+  const uploadPendingMedia = async () => {
+    const photoTargets = formData.photos.filter((p) => !p.id);
+    const audioTargets = formData.audios.filter((a) => !a.id);
+    const total = photoTargets.length + audioTargets.length;
+    if (!total) return { total: 0, failed: 0 };
+
+    const photoResults = await Promise.all(
+      photoTargets.map(async (photo) => ({ source: photo, result: await uploadLogMedia(id, photo, 'photo') }))
+    );
+    const audioResults = await Promise.all(
+      audioTargets.map(async (audio) => ({ source: audio, result: await uploadLogMedia(id, audio, 'audio') }))
+    );
+    const uploadedPhotos = photoResults.filter(({ result }) => result);
+    const uploadedAudios = audioResults.filter(({ result }) => result);
+
+    if (uploadedPhotos.length || uploadedAudios.length) {
+      setFormData((prev) => ({
+        ...prev,
+        photos: prev.photos.map((photo) => {
+          const uploaded = uploadedPhotos.find(({ source }) => source === photo);
+          return uploaded?.result ? { ...photo, id: uploaded.result.id, uploaded: true } : photo;
+        }),
+        audios: prev.audios.map((audio) => {
+          const uploaded = uploadedAudios.find(({ source }) => source === audio);
+          return uploaded?.result
+            ? { ...audio, id: uploaded.result.id, label: uploaded.result.label ?? audio.label }
+            : audio;
+        }),
+      }));
+    }
+
+    return {
+      total,
+      failed: [...photoResults, ...audioResults].filter(({ result }) => result == null).length,
+    };
+  };
+
   const handleSave = async (): Promise<boolean> => {
     setSaving(true);
     try {
@@ -76,9 +250,19 @@ export default function LogDetailScreen() {
         factors:   log.factors ?? [],
         note:      formData.note.trim() || null,
       });
+
+      const mediaResult = await uploadPendingMedia();
+      if (mediaResult.failed > 0) {
+        Alert.alert(
+          'Một số file chưa lưu được',
+          `Nội dung nhật ký đã lưu, nhưng ${mediaResult.failed}/${mediaResult.total} file media chưa upload thành công. Vui lòng thử lưu lại.`
+        );
+        return true;
+      }
+
       setIsEditing(false);
       setToastVisible(true);
-      fetchLog();
+      fetchLog(false);
       return true;
     } catch {
       Alert.alert('Lỗi', 'Không lưu được, thử lại nhé!');
@@ -89,31 +273,26 @@ export default function LogDetailScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Xoá nhật ký?',
-      'Hành động này không thể hoàn tác.',
-      [
-        { text: 'Huỷ', style: 'cancel' },
-        {
-          text: 'Xoá', style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/logs/${id}`);
-              router.navigate('/tabs/journal');
-            } catch {
-              Alert.alert('Lỗi', 'Không xoá được.');
-            }
-          },
-        },
-      ]
-    );
+    confirmDestructiveAction({
+      title: 'Xoá nhật ký?',
+      message: 'Hành động này không thể hoàn tác.',
+      confirmText: 'Xoá',
+      errorMessage: 'Không xoá được.',
+      onConfirm: async () => {
+        await api.delete(`/logs/${id}`);
+        router.navigate('/tabs/journal');
+      },
+    });
   };
 
   const isDirty = () => {
     if (!log) return false;
     const origNote = log.note ?? '';
     const origMood = log.mood ?? '';
-    return formData.note !== origNote || (formData.mood?.name ?? '') !== origMood;
+    const hasPendingMedia =
+      formData.photos.some((photo) => !photo.id) ||
+      formData.audios.some((audio) => !audio.id);
+    return formData.note !== origNote || (formData.mood?.name ?? '') !== origMood || hasPendingMedia;
   };
 
   const handleBack = () => {
@@ -167,9 +346,11 @@ export default function LogDetailScreen() {
         <Text style={h.headerDate} numberOfLines={1}>{dateStr}</Text>
 
         <View style={h.headerRight}>
-          <TouchableOpacity style={h.headerBtn} onPress={handleDelete}>
-            <Text style={[h.headerBtnText, s.deleteIcon]}>🗑</Text>
-          </TouchableOpacity>
+          <AppIconButton
+            icon="trash"
+            onPress={handleDelete}
+            accessibilityLabel="Xoá nhật ký"
+          />
 
           {isToday && (
             isEditing ? (
@@ -178,12 +359,18 @@ export default function LogDetailScreen() {
                 onPress={handleSave}
                 disabled={saving}
               >
-                <Text style={h.saveBtnText}>{saving ? '…' : '✓'}</Text>
+                {saving ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <CheckLineIcon size={19} />
+                )}
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={h.editBtn} onPress={() => setIsEditing(true)}>
-                <Text style={h.editBtnText}>E</Text>
-              </TouchableOpacity>
+              <AppIconButton
+                icon="edit"
+                onPress={() => setIsEditing(true)}
+                accessibilityLabel="Chỉnh sửa nhật ký"
+              />
             )
           )}
         </View>
@@ -198,6 +385,7 @@ export default function LogDetailScreen() {
         {isEditing ? (
 
           <JournalEntryForm
+            logId={id}
             initialMood={formData.mood}
             initialNote={formData.note}
             initialPhotos={formData.photos}
@@ -234,9 +422,16 @@ export default function LogDetailScreen() {
                 <Text style={s.cardTitle}>Ảnh của bạn</Text>
                 <View style={s.photosGrid}>
                   {formData.photos.map((photo, i) => (
-                    <View key={i} style={s.photoWrap}>
-                      <Image source={{ uri: photo.uri }} style={s.photo} />
-                    </View>
+                    <TouchableOpacity
+                      key={photo.id ?? `${photo.uri}-${i}`}
+                      style={s.photoWrap}
+                      activeOpacity={0.86}
+                      onPress={() => openPhotoViewer(i)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Xem ảnh ${i + 1}`}
+                    >
+                      <Image source={{ uri: photo.uri }} style={s.photo} resizeMode="cover" />
+                    </TouchableOpacity>
                   ))}
                 </View>
               </View>
@@ -247,9 +442,36 @@ export default function LogDetailScreen() {
               <View style={s.card}>
                 <Text style={s.cardTitle}>Ghi âm</Text>
                 {formData.audios.map((audio, i) => (
-                  <View key={i} style={s.audioRow}>
-                    <Text style={s.audioPlayIcon}>MIC</Text>
-                    <Text style={s.audioLabel}>{audio.label}</Text>
+                  <View
+                    key={audio.id ?? `${audio.uri}-${i}`}
+                    style={[
+                      s.audioRow,
+                      playingAudioKey === getAudioKey(audio, i) && s.audioRowActive,
+                    ]}
+                  >
+                    <TouchableOpacity
+                      style={[
+                        s.audioPlayBtn,
+                        loadingAudioKey === getAudioKey(audio, i) && s.audioPlayBtnLoading,
+                      ]}
+                      onPress={() => toggleAudio(audio, i)}
+                      disabled={loadingAudioKey === getAudioKey(audio, i)}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        playingAudioKey === getAudioKey(audio, i)
+                          ? 'Dừng phát ghi âm'
+                          : 'Phát ghi âm'
+                      }
+                    >
+                      {loadingAudioKey === getAudioKey(audio, i) ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : playingAudioKey === getAudioKey(audio, i) ? (
+                        <PauseLineIcon size={16} />
+                      ) : (
+                        <PlayLineIcon size={16} />
+                      )}
+                    </TouchableOpacity>
+                    <Text style={s.audioLabel}>{audio.label || `Ghi âm ${i + 1}`}</Text>
                   </View>
                 ))}
               </View>
@@ -283,6 +505,72 @@ export default function LogDetailScreen() {
         <View style={s.bottomSpacer} />
       </ScrollView>
 
+      <Modal visible={viewerVisible && formData.photos.length > 0} transparent animationType="fade" onRequestClose={closePhotoViewer}>
+        <View style={s.imageViewerOverlay}>
+          <View style={s.imageViewerHeader}>
+            <TouchableOpacity
+              style={s.imageViewerBtn}
+              onPress={closePhotoViewer}
+              accessibilityRole="button"
+              accessibilityLabel="Đóng xem ảnh"
+            >
+              <CloseLineIcon size={20} />
+            </TouchableOpacity>
+            <Text style={s.imageViewerCounter}>
+              {activePhotoIndex + 1}/{formData.photos.length}
+            </Text>
+            <View style={s.imageViewerBtn} />
+          </View>
+
+          <FlatList
+            ref={imageListRef}
+            data={formData.photos}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={Math.max(0, Math.min(activePhotoIndex, formData.photos.length - 1))}
+            getItemLayout={(_, index) => ({
+              length: viewportWidth,
+              offset: viewportWidth * index,
+              index,
+            })}
+            keyExtractor={(photo, index) => photo.id ?? `${photo.uri}-${index}`}
+            onMomentumScrollEnd={handlePhotoScrollEnd}
+            renderItem={({ item }) => (
+              <View style={[s.imageViewerSlide, { width: viewportWidth, height: viewportHeight }]}>
+                <Image source={{ uri: item.uri }} style={s.imageViewerImage} resizeMode="contain" />
+              </View>
+            )}
+          />
+
+          <TouchableOpacity
+            style={[
+              s.imageViewerNav,
+              s.imageViewerNavLeft,
+              activePhotoIndex <= 0 && s.imageViewerNavDisabled,
+            ]}
+            onPress={() => scrollToPhoto(activePhotoIndex - 1)}
+            disabled={activePhotoIndex <= 0}
+            accessibilityRole="button"
+            accessibilityLabel="Ảnh trước"
+          >
+            <ChevronLeftLineIcon size={24} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              s.imageViewerNav,
+              s.imageViewerNavRight,
+              activePhotoIndex >= formData.photos.length - 1 && s.imageViewerNavDisabled,
+            ]}
+            onPress={() => scrollToPhoto(activePhotoIndex + 1)}
+            disabled={activePhotoIndex >= formData.photos.length - 1}
+            accessibilityRole="button"
+            accessibilityLabel="Ảnh tiếp theo"
+          >
+            <ChevronRightLineIcon size={24} />
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       {toastVisible && (
         <Animated.View

@@ -2,12 +2,18 @@ import { create } from 'zustand';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
+import {
+  clearStoredMediaKey,
+  hydrateMediaKeyFromStorage,
+  type MediaKeyEnvelope,
+} from '../services/journal/media-crypto.service';
 
-interface User {
+export interface User extends MediaKeyEnvelope {
   id: string;
   email?: string;
   username: string;
   displayName?: string | null;
+  avatar?: string | null;
   ageGroup?: string | null;
 }
 
@@ -77,6 +83,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     await storage.delete('lastActivity');
     await storage.delete('streak');
     await storage.delete('lastStreakDate');
+    await clearStoredMediaKey();
     set({ token: null, user: null, streak: 0, lastStreakDate: null });
   },
 
@@ -96,6 +103,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await storage.delete('lastActivity');
       await storage.delete('streak');
       await storage.delete('lastStreakDate');
+      await clearStoredMediaKey();
       set({ token: null, user: null, streak: 0, lastStreakDate: null });
       return;
     }
@@ -111,6 +119,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       lastStreakDate: lastStreakDate ?? null,
     });
 
+    await hydrateMediaKeyFromStorage();
     await get().pingStreak();
   },
 
