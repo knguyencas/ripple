@@ -1,18 +1,20 @@
 import { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { useFocusEffect, router } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import {
   quickActionStyles as s,
   QuickActionAccent,
 } from '../../../styles/home/quick-actions.styles';
 import QuickActionCard from '../QuickActionCard';
 import { fetchHealthToday } from '../../../services/tracker/health.service';
+import SleepManualModal from '../../tracker/SleepManualModal';
 
 const palette = QuickActionAccent.sleep;
 const GOAL_MIN = 8 * 60;
 
 export default function SleepQuickCard() {
   const [durationMin, setDurationMin] = useState<number | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const load = useCallback(async () => {
     const today = await fetchHealthToday();
@@ -31,7 +33,7 @@ export default function SleepQuickCard() {
       title="Giấc ngủ"
       goalLabel="Mục tiêu 8 giờ"
       accent="sleep"
-      iconLetter="G"
+      iconLetter="☾"
     >
       <View style={s.valueRow}>
         <Text style={[s.valueBig, { color: palette.primary }]}>{display}</Text>
@@ -49,11 +51,22 @@ export default function SleepQuickCard() {
 
       <TouchableOpacity
         style={[s.pillBtn, { backgroundColor: palette.soft }]}
-        onPress={() => router.push('/tabs/tracker')}
+        onPress={() => setModalVisible(true)}
         activeOpacity={0.7}
       >
-        <Text style={[s.pillBtnText, { color: palette.primary }]}>Sửa thời gian</Text>
+        <Text style={[s.pillBtnText, { color: palette.primary }]}>
+          {durationMin == null ? 'Nhập giấc ngủ' : 'Sửa thời gian'}
+        </Text>
       </TouchableOpacity>
+
+      <SleepManualModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSaved={(sleep) => {
+          setDurationMin(sleep.durationMin);
+          void load();
+        }}
+      />
     </QuickActionCard>
   );
 }

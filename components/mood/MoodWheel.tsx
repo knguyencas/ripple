@@ -4,6 +4,7 @@ import {
   PanResponder, Platform,
   GestureResponderEvent, Modal
 } from 'react-native';
+import Svg, { Circle, Line, Path } from 'react-native-svg';
 import {
   moodWheelStyles as s,
   wheelStyles as ls,
@@ -11,6 +12,7 @@ import {
   MOOD_WHEEL_SIZE,
   MOOD_WHEEL_RADIUS,
   MOOD_WHEEL_INNER_RADIUS,
+  MOOD_WHEEL_CLIP_HEIGHT,
 } from '../../styles/mood/mood-wheel.styles';
 import { Colors } from '../../constants/colors';
 import {
@@ -18,6 +20,7 @@ import {
   getSnappedDegree,
   getWheelIndexFromDegree,
 } from '../../utils/mood/mood-wheel.utils';
+import { SoraMoodIcon, type SoraMoodExpression } from '../shared/Sora';
 
 export const MOODS = [
   { emoji: '😶‍🌫️', name: 'Tê liệt',    desc: 'Mất cảm xúc, không còn cảm nhận', score: 1, color: Colors.moodScale[0] },
@@ -34,60 +37,273 @@ export const MOODS = [
 ];
 
 const N            = MOODS.length;
-const TRACK_R      = (MOOD_WHEEL_RADIUS * 0.72 + MOOD_WHEEL_INNER_RADIUS) / 2 + MOOD_WHEEL_INNER_RADIUS * 0.3;
-const ITEM_SIZE    = 40;
+const TRACK_R      = (MOOD_WHEEL_RADIUS + MOOD_WHEEL_INNER_RADIUS) / 2;
+const ITEM_SIZE    = 46;
 const DEG_PER_ITEM = 360 / N;
 const INITIAL_IDX  = 5;
+export const SORA_MOOD_EXPRESSIONS: SoraMoodExpression[] = [
+  'numb',
+  'vague',
+  'sad',
+  'tired',
+  'angry',
+  'neutral',
+  'calm',
+  'okay',
+  'positive',
+  'happy',
+  'excited',
+];
 
-function makeWheelSVG(size: number): string {
-  const cx = size / 2;
-  const cy = size / 2;
-  const R  = size / 2 - 1;
-  const r  = MOOD_WHEEL_INNER_RADIUS;
-
-  const paths = MOODS.map((mood, i) => {
-    const a1  = ((i * DEG_PER_ITEM) - 90) * Math.PI / 180;
-    const a2  = (((i + 1) * DEG_PER_ITEM) - 90) * Math.PI / 180;
-    const ox1 = cx + R * Math.cos(a1);
-    const oy1 = cy + R * Math.sin(a1);
-    const ox2 = cx + R * Math.cos(a2);
-    const oy2 = cy + R * Math.sin(a2);
-    const ix2 = cx + r * Math.cos(a2);
-    const iy2 = cy + r * Math.sin(a2);
-    const ix1 = cx + r * Math.cos(a1);
-    const iy1 = cy + r * Math.sin(a1);
-    const d   = [
-      `M${ox1.toFixed(2)},${oy1.toFixed(2)}`,
-      `A${R},${R} 0 0,1 ${ox2.toFixed(2)},${oy2.toFixed(2)}`,
-      `L${ix2.toFixed(2)},${iy2.toFixed(2)}`,
-      `A${r},${r} 0 0,0 ${ix1.toFixed(2)},${iy1.toFixed(2)}`,
-      'Z',
-    ].join(' ');
-    return `<path d="${d}" fill="${mood.color}" stroke="white" stroke-width="1.5"/>`;
-  });
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">${paths.join('')}</svg>`;
+function normalizeMoodIndex(index: number): number {
+  if (!Number.isFinite(index)) return INITIAL_IDX;
+  return ((Math.round(index) % N) + N) % N;
 }
 
-const SVG_HTML = makeWheelSVG(MOOD_WHEEL_SIZE);
-const SVG_URI  = `data:image/svg+xml;utf8,${encodeURIComponent(SVG_HTML)}`;
+function getGestureX(e: GestureResponderEvent): number | null {
+  const event = e.nativeEvent as GestureResponderEvent['nativeEvent'] & {
+    clientX?: number;
+  };
+  const x = event.pageX ?? event.locationX ?? event.clientX;
+  return Number.isFinite(x) ? x : null;
+}
 
-function WheelBackground() {
-  if (Platform.OS === 'web') {
-    const Div = 'div' as any;
+function polarPoint(cx: number, cy: number, radius: number, degree: number) {
+  const rad = (degree * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(rad),
+    y: cy + radius * Math.sin(rad),
+  };
+}
+
+function makeDonutSegmentPath(
+  cx: number,
+  cy: number,
+  outerRadius: number,
+  innerRadius: number,
+  startDegree: number,
+  endDegree: number
+): string {
+  const outerStart = polarPoint(cx, cy, outerRadius, startDegree);
+  const outerEnd = polarPoint(cx, cy, outerRadius, endDegree);
+  const innerEnd = polarPoint(cx, cy, innerRadius, endDegree);
+  const innerStart = polarPoint(cx, cy, innerRadius, startDegree);
+  const largeArc = Math.abs(endDegree - startDegree) > 180 ? 1 : 0;
+
+  return [
+    `M ${outerStart.x.toFixed(2)} ${outerStart.y.toFixed(2)}`,
+    `A ${outerRadius.toFixed(2)} ${outerRadius.toFixed(2)} 0 ${largeArc} 1 ${outerEnd.x.toFixed(2)} ${outerEnd.y.toFixed(2)}`,
+    `L ${innerEnd.x.toFixed(2)} ${innerEnd.y.toFixed(2)}`,
+    `A ${innerRadius.toFixed(2)} ${innerRadius.toFixed(2)} 0 ${largeArc} 0 ${innerStart.x.toFixed(2)} ${innerStart.y.toFixed(2)}`,
+    'Z',
+  ].join(' ');
+}
+
+const WHEEL_CENTER = MOOD_WHEEL_SIZE / 2;
+const WHEEL_OUTER_RADIUS = MOOD_WHEEL_RADIUS - 1;
+const INNER_RING_WIDTH = 13;
+const WHEEL_SEGMENTS = MOODS.map((mood, i) => {
+  const start = i * DEG_PER_ITEM - 90;
+  const end = (i + 1) * DEG_PER_ITEM - 90;
+  return {
+    color: mood.color,
+    d: makeDonutSegmentPath(
+      WHEEL_CENTER,
+      WHEEL_CENTER,
+      WHEEL_OUTER_RADIUS,
+      MOOD_WHEEL_INNER_RADIUS,
+      start,
+      end
+    ),
+    innerRingD: makeDonutSegmentPath(
+      WHEEL_CENTER,
+      WHEEL_CENTER,
+      MOOD_WHEEL_INNER_RADIUS + INNER_RING_WIDTH,
+      MOOD_WHEEL_INNER_RADIUS,
+      start,
+      end
+    ),
+  };
+});
+
+const NEEDLE_CENTER_X = MOOD_WHEEL_SIZE / 2;
+const NEEDLE_CENTER_Y = MOOD_WHEEL_RADIUS;
+const NEEDLE_TIP_Y = MOOD_WHEEL_RADIUS - MOOD_WHEEL_INNER_RADIUS;
+const NEEDLE_COLOR = '#8A540F';
+const WHEEL_COLOR_BOOST = [
+  '#4F6F7C',
+  '#6F7ED8',
+  '#58A8E8',
+  '#C27ADE',
+  '#F08080',
+  '#A5B4BC',
+  '#66BFB7',
+  '#8BD08D',
+  '#B8DC8C',
+  '#FFB95D',
+  '#F071A7',
+];
+
+function WheelBackground({ activeIndex }: { activeIndex: number }) {
+  return (
+    <Svg
+      width={MOOD_WHEEL_SIZE}
+      height={MOOD_WHEEL_SIZE}
+      viewBox={`0 0 ${MOOD_WHEEL_SIZE} ${MOOD_WHEEL_SIZE}`}
+      style={es.wheelBackground}
+    >
+      {WHEEL_SEGMENTS.map((segment, i) => (
+        <Path
+          key={`segment-${i}`}
+          d={segment.d}
+          fill={WHEEL_COLOR_BOOST[i] ?? segment.color}
+          stroke="#F4F8FB"
+          strokeWidth={1.2}
+          opacity={i === activeIndex ? 1 : 0.72}
+        />
+      ))}
+      {WHEEL_SEGMENTS.map((segment, i) => (
+        <Path
+          key={`inner-ring-${i}`}
+          d={segment.innerRingD}
+          fill="#1A3A5C"
+          opacity={i === activeIndex ? 0.3 : 0.14}
+        />
+      ))}
+      {WHEEL_SEGMENTS.map((segment, i) => (
+        i === activeIndex ? (
+          <Path
+            key={`active-highlight-${i}`}
+            d={segment.d}
+            fill="rgba(255,255,255,0.16)"
+            stroke="#FFFFFF"
+            strokeWidth={3}
+          />
+        ) : null
+      ))}
+      {WHEEL_SEGMENTS.map((segment, i) => (
+        i === activeIndex ? (
+          <Path
+            key={`active-inner-${i}`}
+            d={segment.innerRingD}
+            fill="#FFFFFF"
+            opacity={0.18}
+          />
+        ) : null
+      ))}
+      {WHEEL_SEGMENTS.map((segment, i) => (
+        i === activeIndex ? (
+          <Path
+            key={`active-core-${i}`}
+            d={segment.d}
+            fill="none"
+            stroke="#1A3A5C"
+            strokeWidth={1.2}
+            opacity={0.22}
+          />
+        ) : null
+      ))}
+    </Svg>
+  );
+}
+
+function MoodWheelFace({
+  expression,
+  active,
+}: {
+  expression: SoraMoodExpression;
+  active: boolean;
+}) {
+  const color = active ? '#1A3A5C' : '#365E72';
+  const opacity = active ? 0.9 : 0.62;
+
+  if (expression === 'angry') {
     return (
-      <Div
-        style={es.wheelBackground}
-        dangerouslySetInnerHTML={{ __html: SVG_HTML }}
-      />
+      <Svg width={40} height={40} viewBox="0 0 40 40">
+        <Path d="M11 15l6 5M29 15l-6 5M12 25l5-5M28 25l-5-5" stroke={color} strokeWidth={3.1} strokeLinecap="round" opacity={opacity} />
+      </Svg>
     );
   }
-  const ImgTag = 'img' as any;
+
+  if (expression === 'sad' || expression === 'tired') {
+    return (
+      <Svg width={40} height={40} viewBox="0 0 40 40">
+        <Path d="M11 17c4 3 7 3 10 0M24 17c4 3 7 3 10 0" stroke={color} strokeWidth={3} strokeLinecap="round" fill="none" opacity={opacity} />
+        <Path d="M15 28c3-5 10-5 13 0" stroke={color} strokeWidth={3} strokeLinecap="round" fill="none" opacity={opacity} />
+      </Svg>
+    );
+  }
+
+  if (expression === 'neutral' || expression === 'numb') {
+    return (
+      <Svg width={40} height={40} viewBox="0 0 40 40">
+        <Line x1={14} y1={14} x2={14} y2={22} stroke={color} strokeWidth={3.2} strokeLinecap="round" opacity={opacity} />
+        <Line x1={26} y1={14} x2={26} y2={22} stroke={color} strokeWidth={3.2} strokeLinecap="round" opacity={opacity} />
+        <Line x1={13} y1={28} x2={27} y2={28} stroke={color} strokeWidth={3.2} strokeLinecap="round" opacity={opacity} />
+      </Svg>
+    );
+  }
+
+  if (expression === 'vague') {
+    return (
+      <Svg width={40} height={40} viewBox="0 0 40 40">
+        <Path d="M10 17c4 2 8 1 10-3M24 24c3-5 8-6 12-2" stroke={color} strokeWidth={3} strokeLinecap="round" fill="none" opacity={opacity} />
+        <Path d="M12 28c4-4 11-4 15 0" stroke={color} strokeWidth={3} strokeLinecap="round" fill="none" opacity={opacity} />
+      </Svg>
+    );
+  }
+
+  if (expression === 'excited') {
+    return (
+      <Svg width={40} height={40} viewBox="0 0 40 40">
+        <Path d="M10 20l4-6 4 6M22 20l4-6 4 6" stroke={color} strokeWidth={3.1} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={opacity} />
+        <Path d="M13 25c4 6 14 6 18 0" stroke={color} strokeWidth={3.2} strokeLinecap="round" fill="none" opacity={opacity} />
+      </Svg>
+    );
+  }
+
   return (
-    <ImgTag
-      src={SVG_URI}
-      style={es.wheelBackground}
-    />
+    <Svg width={40} height={40} viewBox="0 0 40 40">
+      <Path d="M11 17c4 3 7 3 10 0M24 17c4 3 7 3 10 0" stroke={color} strokeWidth={3.1} strokeLinecap="round" fill="none" opacity={opacity} />
+      <Path d="M13 25c4 6 14 6 18 0" stroke={color} strokeWidth={3.1} strokeLinecap="round" fill="none" opacity={opacity} />
+    </Svg>
+  );
+}
+
+function MoodNeedle() {
+  return (
+    <Svg
+      width={MOOD_WHEEL_SIZE}
+      height={MOOD_WHEEL_CLIP_HEIGHT}
+      viewBox={`0 0 ${MOOD_WHEEL_SIZE} ${MOOD_WHEEL_CLIP_HEIGHT}`}
+      style={ls.needleSvg}
+    >
+      <Path
+        d={[
+          `M ${NEEDLE_CENTER_X} ${NEEDLE_TIP_Y + 2}`,
+          `C ${NEEDLE_CENTER_X + 13} ${NEEDLE_TIP_Y + 23}`,
+          `${NEEDLE_CENTER_X + 28} ${NEEDLE_CENTER_Y - 2}`,
+          `${NEEDLE_CENTER_X + 25} ${NEEDLE_CENTER_Y + 22}`,
+          `C ${NEEDLE_CENTER_X + 22} ${NEEDLE_CENTER_Y + 52}`,
+          `${NEEDLE_CENTER_X + 8} ${NEEDLE_CENTER_Y + 65}`,
+          `${NEEDLE_CENTER_X} ${NEEDLE_CENTER_Y + 65}`,
+          `C ${NEEDLE_CENTER_X - 8} ${NEEDLE_CENTER_Y + 65}`,
+          `${NEEDLE_CENTER_X - 22} ${NEEDLE_CENTER_Y + 52}`,
+          `${NEEDLE_CENTER_X - 25} ${NEEDLE_CENTER_Y + 22}`,
+          `C ${NEEDLE_CENTER_X - 28} ${NEEDLE_CENTER_Y - 2}`,
+          `${NEEDLE_CENTER_X - 13} ${NEEDLE_TIP_Y + 23}`,
+          `${NEEDLE_CENTER_X} ${NEEDLE_TIP_Y + 2}`,
+          'Z',
+        ].join(' ')}
+        fill={NEEDLE_COLOR}
+      />
+      <Circle
+        cx={NEEDLE_CENTER_X}
+        cy={NEEDLE_CENTER_Y + 21}
+        r={11}
+        fill="#FFFFFF"
+      />
+    </Svg>
   );
 }
 
@@ -129,33 +345,45 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
   );
 
   const snapToIdx = (idx: number) => {
-    const snapped = getSnappedDegree(currentDeg.current, idx, DEG_PER_ITEM);
+    const safeIdx = normalizeMoodIndex(idx);
+    const safeCurrentDeg = Number.isFinite(currentDeg.current) ? currentDeg.current : initDeg;
+    const snapped = getSnappedDegree(safeCurrentDeg, safeIdx, DEG_PER_ITEM);
     currentDeg.current = snapped;
     Animated.spring(wheelRotation, {
       toValue: snapped, tension: 80, friction: 10, useNativeDriver: Platform.OS !== 'web',
     }).start();
-    setCurrentIdx(idx);
+    setCurrentIdx(safeIdx);
   };
 
   const panResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder:  () => true,
     onPanResponderGrant: (e: GestureResponderEvent) => {
-      lastX.current = e.nativeEvent.pageX;
+      const x = getGestureX(e);
+      if (x == null) return;
+      lastX.current = x;
     },
     onPanResponderMove: (e: GestureResponderEvent) => {
-      const dx = e.nativeEvent.pageX - lastX.current;
-      lastX.current = e.nativeEvent.pageX;
-      currentDeg.current += dx * 0.4;
-      wheelRotation.setValue(currentDeg.current);
-      setCurrentIdx(getWheelIndexFromDegree(currentDeg.current, DEG_PER_ITEM, N));
+      const x = getGestureX(e);
+      if (x == null) return;
+      const dx = x - lastX.current;
+      lastX.current = x;
+      if (!Number.isFinite(dx)) return;
+      const nextDeg = (Number.isFinite(currentDeg.current) ? currentDeg.current : initDeg) + dx * 0.4;
+      if (!Number.isFinite(nextDeg)) return;
+      currentDeg.current = nextDeg;
+      wheelRotation.setValue(nextDeg);
+      setCurrentIdx(normalizeMoodIndex(getWheelIndexFromDegree(nextDeg, DEG_PER_ITEM, N)));
     },
     onPanResponderRelease: () => snapToIdx(currentIdx),
   }), [currentIdx]);
 
+  const safeCurrentIdx = normalizeMoodIndex(currentIdx);
+  const currentMood = MOODS[safeCurrentIdx] ?? MOODS[INITIAL_IDX];
+
   const handleConfirm = () => {
     Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver: false })
-      .start(() => onConfirm(MOODS[currentIdx]));
+      .start(() => onConfirm(currentMood));
   };
 
   const handleClose = () => {
@@ -170,21 +398,26 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
           <TouchableOpacity activeOpacity={1} style={es.sheetBody}>
 
             <View style={s.handle} />
-            <Text style={s.moodEmojiBig}>{MOODS[currentIdx].emoji}</Text>
-            <Text style={s.moodName}>{MOODS[currentIdx].name}</Text>
-            <Text style={s.moodDesc}>{MOODS[currentIdx].desc}</Text>
+            <View style={s.moodSoraBig}>
+              <SoraMoodIcon
+                size={76}
+                expression={SORA_MOOD_EXPRESSIONS[safeCurrentIdx] ?? 'neutral'}
+              />
+            </View>
+            <Text style={s.moodName}>{currentMood.name}</Text>
+            <Text style={s.moodDesc}>{currentMood.desc}</Text>
 
             <View style={ls.wheelClip} {...panResponder.panHandlers}>
               <Animated.View style={[ls.wheelInner, { transform: [{ rotate: rotateDeg }] }]}>
 
-                <WheelBackground />
+                <WheelBackground activeIndex={safeCurrentIdx} />
 
                 {MOODS.map((mood, i) => {
                   const { left, top } = emojiPositions[i];
-                  const isActive   = i === currentIdx;
+                  const isActive   = i === safeCurrentIdx;
                   const dist       = Math.min(
-                    Math.abs(i - currentIdx),
-                    N - Math.abs(i - currentIdx)
+                    Math.abs(i - safeCurrentIdx),
+                    N - Math.abs(i - safeCurrentIdx)
                   );
                   const opacity = isActive ? 1 : Math.max(0.45, 1 - dist * 0.12);
 
@@ -206,9 +439,10 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
                         },
                       ]}
                     >
-                      <Text style={[es.emojiText, isActive && es.emojiTextActive]}>
-                        {mood.emoji}
-                      </Text>
+                      <MoodWheelFace
+                        expression={SORA_MOOD_EXPRESSIONS[i] ?? 'neutral'}
+                        active={isActive}
+                      />
                     </Animated.View>
                   );
                 })}
@@ -217,9 +451,7 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
               </Animated.View>
 
               <View style={ls.needleWrap} pointerEvents="none">
-                <View style={ls.needleLine} />
-                <View style={ls.needleTip} />
-                <View style={ls.needleCenter} />
+                <MoodNeedle />
               </View>
             </View>
 

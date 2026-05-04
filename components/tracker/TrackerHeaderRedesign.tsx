@@ -2,15 +2,7 @@ import { View, Text } from 'react-native';
 import { useAuthStore } from '../../stores/auth.store';
 import { trackerHeaderRedesignStyles as s } from '../../styles/tracker/tracker-redesign.styles';
 import { getGreeting } from '../../utils/home/greeting.utils';
-
-const WEEKDAYS_VI = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-
-function formatDateLine(d: Date): string {
-  const wd = WEEKDAYS_VI[d.getDay()];
-  const day = String(d.getDate()).padStart(2, '0');
-  const mo = String(d.getMonth() + 1).padStart(2, '0');
-  return `${wd}, ${day}/${mo}/${d.getFullYear()}`;
-}
+import { FireIcon } from '../shared/AppIcons';
 
 interface Props {
   affirmText?: string;
@@ -34,10 +26,9 @@ export default function TrackerHeaderRedesign({ affirmText }: Props) {
           <Text style={s.greeting} numberOfLines={1}>
             {getGreeting(today)} {displayName}!
           </Text>
-          <Text style={s.dateText}>{formatDateLine(today)}</Text>
         </View>
         <View style={s.streakBadge}>
-          <Text style={s.streakIcon}>{streak > 0 ? 'F' : '~'}</Text>
+          <FireIcon size={19} color={streak > 0 ? '#F4A261' : '#D8B58C'} />
           <Text style={s.streakNum}>{streak}</Text>
         </View>
       </View>

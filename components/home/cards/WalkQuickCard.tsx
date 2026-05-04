@@ -8,9 +8,8 @@ import {
 import QuickActionCard from '../QuickActionCard';
 import {
   fetchHealthToday,
-  syncStepsToBackend,
   isHealthAvailable,
-  ensureHealthPermissions,
+  requestStepsPermissionAndSync,
 } from '../../../services/tracker/health.service';
 
 const palette = QuickActionAccent.walk;
@@ -21,7 +20,11 @@ function formatSteps(n: number): string {
   return String(n);
 }
 
-export default function WalkQuickCard() {
+interface Props {
+  onTaskStateChanged?: () => void;
+}
+
+export default function WalkQuickCard({ onTaskStateChanged }: Props) {
   const [steps, setSteps] = useState<number | null>(null);
   const [syncing, setSyncing] = useState(false);
 
@@ -36,14 +39,15 @@ export default function WalkQuickCard() {
     if (!isHealthAvailable() || syncing) return;
     setSyncing(true);
     try {
-      const granted = await ensureHealthPermissions();
-      if (!granted) return;
-      const res = await syncStepsToBackend();
-      if (res?.steps != null) setSteps(res.steps);
+      const res = await requestStepsPermissionAndSync();
+      if (res?.steps != null) {
+        setSteps(res.steps);
+        onTaskStateChanged?.();
+      }
     } finally {
       setSyncing(false);
     }
-  }, [syncing]);
+  }, [onTaskStateChanged, syncing]);
 
   const value = steps ?? 0;
   const pct = Math.min(1, value / STEP_GOAL);
@@ -53,7 +57,7 @@ export default function WalkQuickCard() {
       title="Vận động"
       goalLabel={`Mục tiêu ${STEP_GOAL.toLocaleString('vi-VN')}`}
       accent="walk"
-      iconLetter="V"
+      iconLetter="⌁"
     >
       <View style={s.valueRow}>
         <Text style={[s.valueBig, { color: palette.dark }]}>

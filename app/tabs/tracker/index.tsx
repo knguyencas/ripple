@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { ScrollView, View, ActivityIndicator, RefreshControl, StyleSheet } from 'react-native';
+import { ScrollView, View, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useLocalSearchParams, router } from 'expo-router';
 import { Colors } from '../../../constants/colors';
@@ -20,8 +20,9 @@ import SoraMessage from '../../../components/tracker/SoraMessage';
 import { fetchEncouragement, EncouragementPayload } from '../../../services/tracker/encouragement.service';
 import { useAuthStore } from '../../../stores/auth.store';
 import { toDateKey } from '../../../utils/shared/date.utils';
+import { useTodayJournal } from '../../../hooks/journal/useTodayJournal';
+import { trackerScreenRedesignStyles as styles } from '../../../styles/tracker/tracker-screen.styles';
 
-const SECTION_GAP = 22;
 const DEFAULT_SUMMARY: DailySummary = {
   doneCount: 0,
   totalCount: 6,
@@ -44,6 +45,7 @@ export default function TrackerScreen() {
   const [progressAnimationKey, setProgressAnimationKey] = useState(0);
   const streak = useAuthStore((st) => st.streak);
   const pingStreak = useAuthStore((st) => st.pingStreak);
+  const todayJournal = useTodayJournal();
 
   const fetchLogs = async () => {
     try {
@@ -127,7 +129,7 @@ export default function TrackerScreen() {
       return;
     }
     if (nextTask === 'journal' || nextTask === 'done') {
-      router.push('/tabs/journal/new');
+      todayJournal.openTodayJournal();
       return;
     }
     if (nextTask === 'water') {
@@ -146,10 +148,6 @@ export default function TrackerScreen() {
       return;
     }
     scrollToChecklist();
-  };
-
-  const handleJournalCta = () => {
-    router.push('/tabs/journal/new');
   };
 
   useEffect(() => {
@@ -191,7 +189,12 @@ export default function TrackerScreen() {
               onCtaPress={handleHeroCta}
             />
 
-            <JournalCTA onPress={handleJournalCta} />
+            <JournalCTA
+              title={todayJournal.copy.title}
+              buttonLabel={todayJournal.copy.buttonLabel}
+              accessibilityLabel={todayJournal.copy.accessibilityLabel}
+              onPress={todayJournal.openTodayJournal}
+            />
 
             <View
               onLayout={(event) => { sectionY.current.checklist = event.nativeEvent.layout.y; }}
@@ -199,7 +202,7 @@ export default function TrackerScreen() {
               <DailyChecklist ref={checklistRef} onSummary={handleSummary} />
             </View>
 
-            <TrackerIconsRow />
+            <TrackerIconsRow scoreByDate={scoreByDate} />
 
             <StreaksCard
               currentStreak={streak}
@@ -230,25 +233,3 @@ export default function TrackerScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#FAF5E6',
-  },
-  scrollContent: {
-    paddingBottom: 32,
-  },
-  loading: {
-    marginTop: 40,
-  },
-  calendarWrap: {
-    marginTop: SECTION_GAP,
-  },
-  chartWrap: {
-    marginTop: SECTION_GAP,
-  },
-  bottomSpacer: {
-    height: 24,
-  },
-});

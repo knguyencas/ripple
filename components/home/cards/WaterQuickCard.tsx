@@ -13,7 +13,11 @@ const palette = QuickActionAccent.water;
 
 const todayKey = () => toDateKey(new Date());
 
-export default function WaterQuickCard() {
+interface Props {
+  onTaskStateChanged?: () => void;
+}
+
+export default function WaterQuickCard({ onTaskStateChanged }: Props) {
   const [glasses, setGlasses] = useState(0);
   const [goal, setGoal] = useState(8);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,7 +56,10 @@ export default function WaterQuickCard() {
   const change = (delta: number) => {
     setGlasses((prev) => {
       const next = Math.max(0, Math.min(30, prev + delta));
-      if (next !== prev) scheduleSave(next);
+      if (next !== prev) {
+        scheduleSave(next);
+        onTaskStateChanged?.();
+      }
       return next;
     });
   };
@@ -64,7 +71,7 @@ export default function WaterQuickCard() {
       title="Uống nước"
       goalLabel={`Mục tiêu ${goal} ly`}
       accent="water"
-      iconLetter="N"
+      iconLetter="💧"
     >
       <View style={s.valueRow}>
         <Text style={[s.valueBig, { color: palette.primary }]}>{glasses}</Text>

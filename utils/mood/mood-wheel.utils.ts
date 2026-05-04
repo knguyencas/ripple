@@ -3,6 +3,9 @@ export function getWheelIndexFromDegree(
   degreePerItem: number,
   totalItems: number
 ): number {
+  if (!Number.isFinite(degree) || !Number.isFinite(degreePerItem) || totalItems <= 0) {
+    return 0;
+  }
   const normalized = ((-degree) % 360 + 360) % 360;
   return Math.floor(normalized / degreePerItem) % totalItems;
 }
@@ -12,6 +15,9 @@ export function getSnappedDegree(
   targetIndex: number,
   degreePerItem: number
 ): number {
+  if (!Number.isFinite(currentDegree) || !Number.isFinite(targetIndex) || !Number.isFinite(degreePerItem)) {
+    return 0;
+  }
   const target = -((targetIndex + 0.5) * degreePerItem);
   let diff = target - (currentDegree % 360);
   if (diff > 180) diff -= 360;
@@ -35,4 +41,3 @@ export function buildEmojiPositions(
     };
   });
 }
-

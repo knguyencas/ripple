@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Modal,
   View,
@@ -33,6 +33,8 @@ import {
   formatCountdown,
   formatFileSize,
 } from '../../utils/tracker/meditation.utils';
+import { Audio } from 'expo-av';
+import { DownloadLineIcon } from '../shared/AppIcons';
 
 interface Props {
   visible: boolean;
@@ -52,12 +54,93 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
   const [savingSession, setSavingSession] = useState(false);
   const [sessionStartedAt, setSessionStartedAt] = useState<Date | null>(null);
   const [closeConfirmVisible, setCloseConfirmVisible] = useState(false);
+  const [previewingSoundId, setPreviewingSoundId] = useState<string | null>(null);
   const canCacheAudio = Platform.OS !== 'web';
+  const previewSoundRef = useRef<Audio.Sound | null>(null);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const downloadToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [downloadToastVisible, setDownloadToastVisible] = useState(false);
 
   const { state: session, start, pause, resume, stopAndSave, cancel, dismissAwayDialog } =
     useMeditationSession(async (actualMin) => {
       await persistSession(actualMin);
     });
+
+  const stopPreview = useCallback(async () => {
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+    const sound = previewSoundRef.current;
+    previewSoundRef.current = null;
+    setPreviewingSoundId(null);
+    if (!sound) return;
+    try {
+      await sound.stopAsync().catch(() => {});
+      await sound.unloadAsync().catch(() => {});
+    } catch {}
+  }, []);
+
+  const showDownloadToast = useCallback(() => {
+    if (downloadToastTimerRef.current) {
+      clearTimeout(downloadToastTimerRef.current);
+      downloadToastTimerRef.current = null;
+    }
+    setDownloadToastVisible(true);
+    downloadToastTimerRef.current = setTimeout(() => {
+      setDownloadToastVisible(false);
+      downloadToastTimerRef.current = null;
+    }, 2800);
+  }, []);
+
+  const previewSound = useCallback(
+    async (meditationSound: MeditationSound) => {
+      await stopPreview();
+      const uri = canCacheAudio && downloadedSet.has(meditationSound.id)
+        ? getLocalUri(meditationSound.id)
+        : meditationSound.url;
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,
+          staysActiveInBackground: false,
+          shouldDuckAndroid: true,
+        });
+        const { sound: audioSound } = await Audio.Sound.createAsync(
+          { uri },
+          { shouldPlay: true, isLooping: false, volume: 0.85 }
+        );
+        previewSoundRef.current = audioSound;
+        setPreviewingSoundId(meditationSound.id);
+        audioSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            void stopPreview();
+          }
+        });
+        previewTimerRef.current = setTimeout(() => {
+          void stopPreview();
+        }, 10_000);
+      } catch (e) {
+        setPreviewingSoundId(null);
+        console.warn('Preview meditation sound failed:', e);
+      }
+    },
+    [canCacheAudio, downloadedSet, stopPreview]
+  );
+
+  useEffect(() => {
+    if (!visible) void stopPreview();
+  }, [visible, stopPreview]);
+
+  useEffect(() => {
+    return () => {
+      if (downloadToastTimerRef.current) {
+        clearTimeout(downloadToastTimerRef.current);
+        downloadToastTimerRef.current = null;
+      }
+      void stopPreview();
+    };
+  }, [stopPreview]);
 
   useEffect(() => {
     if (!visible) return;
@@ -75,8 +158,7 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
         if (cancelled) return;
         setSounds(list);
         setDownloadedSet(downloaded);
-        const firstDownloaded = list.find((sd) => downloaded.has(sd.id));
-        setSelectedSoundId((firstDownloaded ?? list[0])?.id ?? null);
+        setSelectedSoundId(null);
       } catch (e) {
         console.warn('Load meditation catalog failed:', e);
       } finally {
@@ -92,6 +174,7 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
       setDownloadingId(sound.id);
       setDownloadProgress(0);
       try {
+        setDownloadToastVisible(false);
         await downloadSound(sound.id, sound.url, (ratio) => setDownloadProgress(ratio));
         setDownloadedSet((prev) => new Set(prev).add(sound.id));
         setSelectedSoundId(sound.id);
@@ -135,15 +218,16 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
     if (!selectedSoundId) return;
     const sound = sounds.find((sd) => sd.id === selectedSoundId);
     if (!sound) return;
+    await stopPreview();
 
     if (canCacheAudio && !downloadedSet.has(selectedSoundId)) {
-      await handleDownload(sound);
+      showDownloadToast();
       return;
     }
     const uri = canCacheAudio ? getLocalUri(selectedSoundId) : sound.url;
     setSessionStartedAt(new Date());
     await start({ audioUri: uri, targetMin: duration });
-  }, [selectedSoundId, downloadedSet, sounds, duration, start, handleDownload, canCacheAudio]);
+  }, [selectedSoundId, downloadedSet, sounds, duration, start, canCacheAudio, stopPreview, showDownloadToast]);
 
   const handleStopAndSave = useCallback(async () => {
     const actualMin = await stopAndSave();
@@ -155,12 +239,13 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
 
   const handleClose = useCallback(() => {
     if (session.status === 'idle' || session.status === 'completed') {
+      void stopPreview();
       onClose();
       return;
     }
     void pause('user');
     setCloseConfirmVisible(true);
-  }, [session.status, pause, onClose]);
+  }, [session.status, pause, onClose, stopPreview]);
 
   const handleResumeFromClose = useCallback(() => {
     setCloseConfirmVisible(false);
@@ -245,7 +330,7 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
             <>
               <Text style={s.sectionLabel}>Chọn âm thanh</Text>
               {loadingCatalog ? (
-                <ActivityIndicator style={{ marginVertical: 16 }} />
+                <ActivityIndicator style={s.catalogLoading} />
               ) : sounds.length === 0 ? (
                 <Text style={s.emptyText}>Chưa có nhạc thiền. Vui lòng thử lại sau.</Text>
               ) : (
@@ -263,7 +348,11 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
                       <TouchableOpacity
                         key={sd.id}
                         style={[s.soundCard, isActive && s.soundCardActive]}
-                        onPress={() => setSelectedSoundId(sd.id)}
+                        onPress={() => {
+                          setSelectedSoundId(sd.id);
+                          setDownloadToastVisible(false);
+                          void previewSound(sd);
+                        }}
                         activeOpacity={0.8}
                         disabled={isCurrentlyDownloading}
                       >
@@ -276,6 +365,10 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
                               style={[s.soundProgressFill, { width: `${Math.round(downloadProgress * 100)}%` }]}
                             />
                           </View>
+                        ) : previewingSoundId === sd.id ? (
+                          <View style={s.soundStatus}>
+                            <Text style={s.soundStatusText}>Nghe thử</Text>
+                          </View>
                         ) : isDl ? (
                           <View style={s.soundStatus}>
                             <Text style={s.soundStatusText}>Đã tải</Text>
@@ -283,9 +376,27 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
                         ) : (
                           <View style={[s.soundStatus, s.soundStatusInactive]}>
                             <Text style={[s.soundStatusText, s.soundStatusInactiveText]}>
-                              Tải xuống · {formatFileSize(sd.fileSizeMB)}
+                              Chưa tải · {formatFileSize(sd.fileSizeMB)}
                             </Text>
                           </View>
+                        )}
+
+                        {!isDl && canCacheAudio && (
+                          <TouchableOpacity
+                            style={s.soundDownloadBtn}
+                            onPress={(event) => {
+                              event.stopPropagation();
+                              void handleDownload(sd);
+                            }}
+                            disabled={isCurrentlyDownloading}
+                            activeOpacity={0.8}
+                          >
+                            {isCurrentlyDownloading ? (
+                              <ActivityIndicator size="small" color="#2E6F8E" />
+                            ) : (
+                              <DownloadLineIcon size={16} color="#2E6F8E" />
+                            )}
+                          </TouchableOpacity>
                         )}
                       </TouchableOpacity>
                     );
@@ -303,7 +414,10 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
                       style={[s.durationChip, active && s.durationChipActive]}
                       onPress={() => setDuration(minute)}
                     >
-                      <Text style={[s.durationChipText, active && s.durationChipTextActive]}>
+                      <Text
+                        style={[s.durationChipText, active && s.durationChipTextActive]}
+                        numberOfLines={1}
+                      >
                         {minute} phút
                       </Text>
                     </TouchableOpacity>
@@ -327,6 +441,14 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
           )}
 
           <View style={s.actions}>
+            {downloadToastVisible && (
+              <View style={s.downloadToast}>
+                <Text style={s.downloadToastText}>
+                  Bạn cần tải âm thanh trước. Nhấn icon tải ở góc dưới phải của âm thanh.
+                </Text>
+              </View>
+            )}
+
             {session.status === 'idle' && (
               <TouchableOpacity
                 style={[
@@ -338,7 +460,7 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
               >
                 <Text style={s.primaryBtnText}>
                   {selectedSoundId && canCacheAudio && !downloadedSet.has(selectedSoundId)
-                    ? `Tải xuống & bắt đầu`
+                    ? `Cần tải âm thanh`
                     : 'Bắt đầu thiền'}
                 </Text>
               </TouchableOpacity>
@@ -355,7 +477,7 @@ export default function MeditationModal({ visible, onClose, onSessionSaved }: Pr
                 <TouchableOpacity style={s.primaryBtn} onPress={() => void resume()}>
                   <Text style={s.primaryBtnText}>Tiếp tục</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.secondaryBtn} onPress={handleStopAndSave}>
+                <TouchableOpacity style={s.secondaryBtn} onPress={handleSaveAndClose}>
                   <Text style={s.secondaryBtnText}>Kết thúc & lưu</Text>
                 </TouchableOpacity>
               </>

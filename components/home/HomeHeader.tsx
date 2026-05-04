@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useAuthStore } from '../../stores/auth.store';
 import { homeHeaderStyles as s } from '../../styles/home/home-header.styles';
 import { getGreeting } from '../../utils/home/greeting.utils';
+import BellIcon from '../shared/BellIcon';
 
 interface Props {
   hasNotification?: boolean;
@@ -27,7 +28,7 @@ export default function HomeHeader({ hasNotification = false }: Props) {
           onPress={() => router.push('/tabs/notifications')}
           accessibilityLabel="Thông báo"
         >
-          <Text style={s.iconLabel}>N</Text>
+          <BellIcon size={22} />
           {hasNotification && <View style={s.notifDot} />}
         </TouchableOpacity>
 

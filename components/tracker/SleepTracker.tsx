@@ -8,9 +8,11 @@ import {
   fetchHealthSummary,
   fetchHealthToday,
   isHealthAvailable,
-  ensureHealthPermissions,
+  ensureSleepPermission,
 } from '../../services/tracker/health.service';
 import { EncouragementHint } from './MoodEncouragement';
+import { getHealthSyncStatus, type HealthSyncStatus } from '../../services/tracker/health-sync-preference.service';
+import SleepManualModal from './SleepManualModal';
 
 const GOAL_MIN = 8 * 60;
 
@@ -39,13 +41,16 @@ export default function SleepTracker({ hint }: Props = {}) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<HealthSyncStatus>('unknown');
+  const [manualVisible, setManualVisible] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [todayRes, summaryRes] = await Promise.all([
+      const [todayRes, summaryRes, status] = await Promise.all([
         fetchHealthToday(),
         fetchHealthSummary(7),
+        getHealthSyncStatus('sleep'),
       ]);
       const total = todayRes?.sleep?.totalMinutes ?? 0;
       const session = todayRes?.sleep?.sessions?.[0];
@@ -53,6 +58,8 @@ export default function SleepTracker({ hint }: Props = {}) {
       setBedtime(session?.bedtime ?? null);
       setWakeTime(session?.wakeTime ?? null);
       setAvgMin(summaryRes?.averages?.sleepMinutes ?? null);
+      setSyncStatus(status);
+      return status;
     } finally {
       setLoading(false);
     }
@@ -61,7 +68,7 @@ export default function SleepTracker({ hint }: Props = {}) {
   const sync = useCallback(async () => {
     if (!isHealthAvailable()) return;
     setSyncing(true);
-    const granted = await ensureHealthPermissions();
+    const granted = await ensureSleepPermission();
     if (!granted) {
       setPermissionDenied(true);
       setSyncing(false);
@@ -81,8 +88,8 @@ export default function SleepTracker({ hint }: Props = {}) {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        await load();
-        if (isHealthAvailable()) await sync();
+        const status = await load();
+        if (status === 'enabled' && isHealthAvailable()) await sync();
       })();
     }, [load, sync])
   );
@@ -105,17 +112,38 @@ export default function SleepTracker({ hint }: Props = {}) {
         </Text>
       ) : permissionDenied ? (
         <View>
-          <Text style={s.emptyText}>Chưa có quyền đọc dữ liệu giấc ngủ.</Text>
+          <Text style={s.emptyText}>Sora chưa được cấp quyền xem giấc ngủ của bạn :(</Text>
           <TouchableOpacity style={s.retryBtn} onPress={sync}>
-            <Text style={s.retryText}>Cấp quyền</Text>
+            <Text style={s.retryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+              Cấp quyền
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.retryBtn} onPress={() => setManualVisible(true)}>
+            <Text style={s.retryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+              Nhập thủ công
+            </Text>
           </TouchableOpacity>
         </View>
       ) : durationMin == null ? (
-        <Text style={s.emptyText}>
-          Chưa có dữ liệu giấc ngủ đêm qua. {Platform.OS === 'android'
-            ? 'Đảm bảo app theo dõi ngủ của bạn đã ghi vào Health Connect.'
-            : 'Đảm bảo app ngủ của bạn (Apple Watch, AutoSleep…) đã ghi vào Apple Health.'}
-        </Text>
+        <View>
+          <Text style={s.emptyText}>
+            {syncStatus === 'enabled'
+              ? `Chưa có dữ liệu giấc ngủ đêm qua. ${Platform.OS === 'android'
+                ? 'Hãy kiểm tra Health Connect.'
+                : 'Hãy kiểm tra Apple Health.'}`
+              : 'Sora chưa được cấp quyền xem giấc ngủ của bạn :('}
+          </Text>
+          <TouchableOpacity style={s.retryBtn} onPress={sync}>
+            <Text style={s.retryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+              Cấp quyền
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.retryBtn} onPress={() => setManualVisible(true)}>
+            <Text style={s.retryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+              Nhập thủ công
+            </Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <>
           <View style={s.mainRow}>
@@ -146,6 +174,16 @@ export default function SleepTracker({ hint }: Props = {}) {
       )}
 
       <EncouragementHint message={hint ?? null} />
+      <SleepManualModal
+        visible={manualVisible}
+        onClose={() => setManualVisible(false)}
+        onSaved={(sleep) => {
+          setDurationMin(sleep.durationMin);
+          setBedtime(sleep.bedtime);
+          setWakeTime(sleep.wakeTime);
+          void load();
+        }}
+      />
     </View>
   );
 }

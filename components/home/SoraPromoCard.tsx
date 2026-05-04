@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { soraPromoStyles as s } from '../../styles/home/primary-cta.styles';
+import { SoraInHalo } from '../shared/Sora';
 
 export default function SoraPromoCard() {
   const handleStart = () => {
@@ -22,9 +23,7 @@ export default function SoraPromoCard() {
           <Text style={s.ctaPillText}>Bắt đầu</Text>
         </View>
       </View>
-      <View style={s.mascot}>
-        <Text style={s.mascotGlyph}>S</Text>
-      </View>
+      <SoraInHalo size={58} pose="hug" haloSize={78} withShadow idPrefix="home-sora-promo" />
     </TouchableOpacity>
   );
 }

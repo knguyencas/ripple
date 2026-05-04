@@ -1,42 +1,46 @@
 import { StyleSheet } from 'react-native';
 
-const CREAM = '#FAF5E6';
+const APP_BG = '#F4F8FB';
+const DEEP_BLUE = '#1A3A5C';
+const ACTION_BLUE = '#2E6F8E';
 
 export const homeScreenStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: APP_BG,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 128,
   },
   sectionLabel: {
     fontFamily: 'Nunito_700Bold',
     fontSize: 15,
     color: '#1A3A4A',
-    marginTop: 22,
-    marginBottom: 12,
+    marginTop: 26,
+    marginBottom: 18,
     paddingHorizontal: 20,
   },
   sectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     paddingHorizontal: 20,
-    marginTop: 22,
-    marginBottom: 12,
+    marginTop: 30,
+    marginBottom: 20,
   },
   sectionRowTitle: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 15,
-    color: '#1A3A4A',
+    fontSize: 18,
+    color: DEEP_BLUE,
   },
   sectionRowMeta: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 11,
-    color: '#2E6F8E',
+    fontSize: 13,
+    color: ACTION_BLUE,
+    lineHeight: 18,
+    paddingBottom: 2,
   },
 });

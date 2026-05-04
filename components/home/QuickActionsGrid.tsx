@@ -5,13 +5,17 @@ import SleepQuickCard from './cards/SleepQuickCard';
 import WalkQuickCard from './cards/WalkQuickCard';
 import MeditateQuickCard from './cards/MeditateQuickCard';
 
-export default function QuickActionsGrid() {
+interface Props {
+  onTaskStateChanged?: () => void;
+}
+
+export default function QuickActionsGrid({ onTaskStateChanged }: Props) {
   return (
     <View style={s.grid}>
-      <WaterQuickCard />
+      <WaterQuickCard onTaskStateChanged={onTaskStateChanged} />
       <SleepQuickCard />
-      <WalkQuickCard />
-      <MeditateQuickCard />
+      <WalkQuickCard onTaskStateChanged={onTaskStateChanged} />
+      <MeditateQuickCard onTaskStateChanged={onTaskStateChanged} />
     </View>
   );
 }

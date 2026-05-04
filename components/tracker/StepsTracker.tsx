@@ -8,8 +8,9 @@ import {
   fetchHealthSummary,
   fetchHealthToday,
   isHealthAvailable,
-  ensureHealthPermissions,
+  ensureStepsPermission,
 } from '../../services/tracker/health.service';
+import { getHealthSyncStatus, type HealthSyncStatus } from '../../services/tracker/health-sync-preference.service';
 import { EncouragementHint } from './MoodEncouragement';
 
 const DEFAULT_GOAL = 8000;
@@ -24,16 +25,20 @@ export default function StepsTracker({ hint }: Props = {}) {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<HealthSyncStatus>('unknown');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [todayRes, summaryRes] = await Promise.all([
+      const [todayRes, summaryRes, status] = await Promise.all([
         fetchHealthToday(),
         fetchHealthSummary(7),
+        getHealthSyncStatus('steps'),
       ]);
       setSteps(todayRes?.steps ?? null);
       setAvgSteps(summaryRes?.averages?.steps ?? null);
+      setSyncStatus(status);
+      return status;
     } finally {
       setLoading(false);
     }
@@ -42,7 +47,7 @@ export default function StepsTracker({ hint }: Props = {}) {
   const sync = useCallback(async () => {
     if (!isHealthAvailable()) return;
     setSyncing(true);
-    const granted = await ensureHealthPermissions();
+    const granted = await ensureStepsPermission();
     if (!granted) {
       setPermissionDenied(true);
       setSyncing(false);
@@ -60,8 +65,8 @@ export default function StepsTracker({ hint }: Props = {}) {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        await load();
-        if (isHealthAvailable()) await sync();
+        const status = await load();
+        if (status === 'enabled' && isHealthAvailable()) await sync();
       })();
     }, [load, sync])
   );
@@ -88,13 +93,24 @@ export default function StepsTracker({ hint }: Props = {}) {
             Chưa được cấp quyền đọc dữ liệu vận động.
           </Text>
           <TouchableOpacity style={s.retryBtn} onPress={sync}>
-            <Text style={s.retryText}>Cấp quyền</Text>
+            <Text style={s.retryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+              Cấp quyền
+            </Text>
           </TouchableOpacity>
         </View>
       ) : steps == null ? (
-        <Text style={s.emptyText}>
-          Chưa có dữ liệu hôm nay. {Platform.OS === 'android' ? 'Hãy mở Health Connect và cho phép chia sẻ.' : 'Mở Apple Health để đồng bộ.'}
-        </Text>
+        <View>
+          <Text style={s.emptyText}>
+            {syncStatus === 'enabled'
+              ? `Chưa có dữ liệu hôm nay. ${Platform.OS === 'android' ? 'Hãy kiểm tra Health Connect.' : 'Hãy kiểm tra Apple Health.'}`
+              : 'Sora chưa được cấp quyền xem dữ liệu vận động của bạn.'}
+          </Text>
+          <TouchableOpacity style={s.retryBtn} onPress={sync}>
+            <Text style={s.retryText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82}>
+              Cấp quyền
+            </Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <>
           <View style={s.mainRow}>

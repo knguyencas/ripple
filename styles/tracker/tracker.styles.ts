@@ -1,6 +1,8 @@
 import { StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
 
+const TRACKER_ACTION_BLUE = '#2E6F8E';
+
 export const trackerScreenStyles = StyleSheet.create({
   header: {
     flexDirection: 'row',
@@ -30,7 +32,7 @@ export const trackerScreenStyles = StyleSheet.create({
   },
   completedText: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 18,
+    fontSize: 19,
     color: Colors.textLight,
   },
   completedLabel: {
@@ -82,8 +84,8 @@ export const moodCalendarStyles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 18,
+    padding: 16,
     marginBottom: 0,
     overflow: 'hidden',
     shadowColor: '#1A3A4A',
@@ -93,25 +95,242 @@ export const moodCalendarStyles = StyleSheet.create({
     elevation: 3,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    position: 'relative',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 14,
+    minHeight: 30,
+  },
+  monthSelector: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    minHeight: 30,
   },
   title: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 15,
+    fontSize: 19,
     color: Colors.textPrimary,
     textTransform: 'capitalize',
+    textAlign: 'center',
+  },
+  monthChevronWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(110, 133, 151, 0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   countBadge: {
+    position: 'absolute',
+    right: 0,
+    top: 6,
+    fontFamily: 'Nunito_600SemiBold',
+    fontSize: 13,
+    color: TRACKER_ACTION_BLUE,
+    lineHeight: 18,
+    width: 58,
+    textAlign: 'right',
+  },
+  pickerPanel: {
+    backgroundColor: '#F7FAFC',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 16,
+  },
+  yearRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 18,
+    marginBottom: 12,
+  },
+  yearButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  yearButtonText: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 22,
+    color: Colors.teal,
+    lineHeight: 24,
+  },
+  yearText: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 16,
+    color: Colors.textPrimary,
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  monthChip: {
+    width: '23%',
+    borderRadius: 14,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  monthChipActive: {
+    backgroundColor: Colors.teal,
+  },
+  monthChipText: {
     fontFamily: 'Nunito_600SemiBold',
     fontSize: 12,
-    color: Colors.teal,
+    color: Colors.textSecondary,
+  },
+  monthChipTextActive: {
+    color: Colors.textLight,
+  },
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(26, 58, 74, 0.34)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 26,
+  },
+  pickerPopup: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 18,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+    elevation: 8,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  pickerTitle: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 18,
+    color: Colors.textPrimary,
+  },
+  pickerCloseButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF4F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerCloseText: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 16,
+    color: Colors.textPrimary,
+    lineHeight: 18,
+  },
+  pickerColumns: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  pickerColumn: {
+    flex: 1,
+  },
+  pickerColumnLabel: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 13,
+    color: Colors.textPrimary,
+    marginBottom: 8,
+  },
+  pickerScroll: {
+    maxHeight: 188,
+    borderRadius: 16,
+    backgroundColor: '#F7FAFC',
+    padding: 6,
+  },
+  pickerOption: {
+    minHeight: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+    paddingHorizontal: 12,
+  },
+  pickerOptionActive: {
+    backgroundColor: TRACKER_ACTION_BLUE,
+  },
+  pickerOptionText: {
+    fontFamily: 'Nunito_600SemiBold',
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  pickerOptionTextActive: {
+    color: '#FFFFFF',
+  },
+  manualPanel: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 14,
+  },
+  manualInput: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 16,
+    backgroundColor: '#F7FAFC',
+    borderWidth: 1,
+    borderColor: '#DDEAF1',
+    paddingHorizontal: 14,
+    fontFamily: 'Nunito_600SemiBold',
+    fontSize: 15,
+    color: Colors.textPrimary,
+    textAlign: 'center',
+  },
+  pickerHint: {
+    fontFamily: 'Nunito_400Regular',
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  pickerFooter: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  pickerCancel: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 24,
+    backgroundColor: '#EEF4F8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerCancelText: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 14,
+    color: Colors.textSecondary,
+  },
+  pickerApply: {
+    flex: 1,
+    minHeight: 46,
+    borderRadius: 24,
+    backgroundColor: TRACKER_ACTION_BLUE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerApplyText: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 14,
+    color: '#FFFFFF',
   },
   weekdayRow: {
     flexDirection: 'row',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   weekdayCell: {
     flex: 1,
@@ -119,7 +338,7 @@ export const moodCalendarStyles = StyleSheet.create({
   },
   weekdayText: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.textSecondary,
     letterSpacing: 0.5,
   },
@@ -166,7 +385,7 @@ export const moodCalendarStyles = StyleSheet.create({
   },
   dayNumber: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.textSecondary,
   },
   dayNumberLogged: {
@@ -200,13 +419,13 @@ export const moodCalendarStyles = StyleSheet.create({
   },
   activityTitle: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 14,
+    fontSize: 16,
     color: Colors.textPrimary,
     marginBottom: 10,
   },
   activityEmpty: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 13,
+    fontSize: 15,
     color: Colors.textSecondary,
     paddingVertical: 8,
   },
@@ -238,13 +457,13 @@ export const moodCalendarStyles = StyleSheet.create({
   },
   activityLabel: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 13,
+    fontSize: 15,
     color: Colors.textPrimary,
     marginBottom: 2,
   },
   activitySub: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
   },
   activityChevron: {
@@ -268,11 +487,11 @@ export const moodLineChartStyles = StyleSheet.create({
     elevation: 3,
   },
   header: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   title: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 16,
+    fontSize: 19,
     color: Colors.textPrimary,
     marginBottom: 2,
   },
@@ -284,21 +503,21 @@ export const moodLineChartStyles = StyleSheet.create({
   toggle: {
     flexDirection: 'row',
     backgroundColor: Colors.foam,
-    borderRadius: 10,
+    borderRadius: 20,
     padding: 3,
-    marginTop: 12,
-    marginBottom: 8,
+    marginTop: 4,
+    marginBottom: 12,
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingVertical: 8,
+    borderRadius: 18,
     alignItems: 'center',
   },
-  toggleBtnActive: { backgroundColor: Colors.teal },
+  toggleBtnActive: { backgroundColor: TRACKER_ACTION_BLUE },
   toggleText: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textSecondary,
   },
   toggleTextActive: { color: Colors.textLight },
@@ -334,16 +553,16 @@ export const moodLineChartStyles = StyleSheet.create({
   },
   lineSegment: {
     position: 'absolute',
-    backgroundColor: Colors.teal,
+    backgroundColor: TRACKER_ACTION_BLUE,
   },
   dot: {
     position: 'absolute',
-    backgroundColor: Colors.teal,
+    backgroundColor: TRACKER_ACTION_BLUE,
   },
   dotCurrent: {
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
-    borderColor: Colors.teal,
+    borderColor: TRACKER_ACTION_BLUE,
   },
   xAxisRow: {
     flexDirection: 'row',
@@ -369,12 +588,12 @@ export const moodLineChartStyles = StyleSheet.create({
   },
   summaryNum: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.textPrimary,
   },
   summaryLabel: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.textSecondary,
     marginTop: 2,
     textAlign: 'center',
@@ -409,12 +628,12 @@ export const waterTrackerStyles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.textPrimary,
   },
   subtitle: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 2,
   },
@@ -469,7 +688,7 @@ export const waterTrackerStyles = StyleSheet.create({
   },
   glassCount: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 22,
+    fontSize: 24,
     color: Colors.textPrimary,
     marginTop: 10,
   },
@@ -480,7 +699,7 @@ export const waterTrackerStyles = StyleSheet.create({
   },
   glassLabel: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textSecondary,
   },
   footerRow: {
@@ -491,7 +710,7 @@ export const waterTrackerStyles = StyleSheet.create({
   },
   footerText: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
   },
   footerBold: {
@@ -518,12 +737,12 @@ export const sleepTrackerStyles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.textPrimary,
   },
   subtitle: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 2,
   },
@@ -536,12 +755,12 @@ export const sleepTrackerStyles = StyleSheet.create({
   numberWrap: { flex: 1 },
   bigNumber: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 28,
+    fontSize: 31,
     color: Colors.textPrimary,
   },
   unit: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 4,
   },
@@ -585,14 +804,20 @@ export const sleepTrackerStyles = StyleSheet.create({
     marginTop: 10,
     alignSelf: 'flex-start',
     backgroundColor: Colors.teal,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: 20,
+    paddingHorizontal: 18,
     paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   retryText: {
     fontFamily: 'Nunito_700Bold',
     color: Colors.textLight,
     fontSize: 13,
+    lineHeight: 16,
+    textAlign: 'center',
+    includeFontPadding: false,
+    flexShrink: 1,
   },
   footerRow: {
     marginTop: 14,
@@ -602,7 +827,7 @@ export const sleepTrackerStyles = StyleSheet.create({
   },
   footerText: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
   },
   footerBold: {
@@ -629,12 +854,12 @@ export const stepsTrackerStyles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 16,
+    fontSize: 18,
     color: Colors.textPrimary,
   },
   subtitle: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 2,
   },
@@ -649,12 +874,12 @@ export const stepsTrackerStyles = StyleSheet.create({
   },
   bigNumber: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 32,
+    fontSize: 34,
     color: Colors.textPrimary,
   },
   unit: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
     marginTop: 2,
   },
@@ -698,14 +923,20 @@ export const stepsTrackerStyles = StyleSheet.create({
     marginTop: 10,
     alignSelf: 'flex-start',
     backgroundColor: Colors.teal,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderRadius: 20,
+    paddingHorizontal: 18,
     paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   retryText: {
     fontFamily: 'Nunito_700Bold',
     color: Colors.textLight,
     fontSize: 13,
+    lineHeight: 16,
+    textAlign: 'center',
+    includeFontPadding: false,
+    flexShrink: 1,
   },
   footerRow: {
     marginTop: 14,
@@ -715,7 +946,7 @@ export const stepsTrackerStyles = StyleSheet.create({
   },
   footerText: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: Colors.textSecondary,
   },
   footerBold: {

@@ -1,10 +1,12 @@
 import { StyleSheet } from 'react-native';
 
-const TEXT = '#1A3A4A';
+const TEXT = '#1A3A5C';
 const MUTED = '#6E8597';
 const BLUE_DARK = '#2E6F8E';
 const BLUE_LIGHT = '#C4DDED';
 const STREAK = '#D85A30';
+const STREAK_SOFT = '#FFF0DC';
+const STREAK_SOFT_BORDER = '#FFE0B8';
 const STREAK_CARD = '#E8F0F7';
 const YELLOW_BG = '#FFF3CD';
 const YELLOW_TEXT = '#8B6F2A';
@@ -51,11 +53,15 @@ export const trackerHeaderRedesignStyles = StyleSheet.create({
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
-    paddingHorizontal: 9,
+    minHeight: 32,
+    paddingHorizontal: 10,
     paddingVertical: 5,
-    backgroundColor: YELLOW_BG,
-    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.2,
+    borderColor: BLUE_LIGHT,
   },
   streakIcon: {
     fontFamily: 'Nunito_700Bold',
@@ -64,8 +70,10 @@ export const trackerHeaderRedesignStyles = StyleSheet.create({
   },
   streakNum: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: 19,
     color: STREAK,
+    textAlignVertical: 'center',
   },
   affirm: {
     fontFamily: 'Nunito_600SemiBold',
@@ -169,9 +177,9 @@ export const heroProgressStyles = StyleSheet.create({
   },
   bodyText: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 13,
+    fontSize: 15,
     color: TEXT,
-    lineHeight: 18,
+    lineHeight: 21,
   },
   bodyProgressTrack: {
     width: '100%',
@@ -188,15 +196,15 @@ export const heroProgressStyles = StyleSheet.create({
   },
   cta: {
     alignSelf: 'flex-start',
-    marginTop: 8,
+    marginTop: 10,
     backgroundColor: BLUE_DARK,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   ctaText: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 11,
+    fontSize: 13,
     color: '#FFFFFF',
   },
 });
@@ -209,18 +217,20 @@ export const checklistStyles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     marginBottom: 12,
   },
   sectionTitle: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 15,
+    fontSize: 18,
     color: TEXT,
   },
   meta: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 12,
+    fontSize: 13,
     color: BLUE_DARK,
+    lineHeight: 18,
+    paddingBottom: 1,
   },
   item: {
     backgroundColor: '#FFFFFF',
@@ -232,10 +242,10 @@ export const checklistStyles = StyleSheet.create({
     gap: 14,
     marginBottom: 10,
     shadowColor: '#1A3A4A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
   },
   itemDashed: {
     borderWidth: 1.5,
@@ -264,7 +274,7 @@ export const checklistStyles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 14,
+    fontSize: 16,
     color: TEXT,
   },
   newBadge: {
@@ -280,27 +290,41 @@ export const checklistStyles = StyleSheet.create({
   },
   sub: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 12,
+    fontSize: 13,
     color: MUTED,
-    marginTop: 2,
+    marginTop: 4,
   },
   trailingBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: BLUE_LIGHT,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  trailingStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  trailingBtnSoft: {
+    backgroundColor: '#EEF4F8',
+  },
+  trailingBtnDisabled: {
+    opacity: 0.45,
+  },
   trailingBtnText: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 16,
+    fontSize: 18,
     color: BLUE_DARK,
-    lineHeight: 18,
+    lineHeight: 20,
+  },
+  trailingBtnTextSoft: {
+    color: MUTED,
   },
   trailingDoneText: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 12,
+    fontSize: 13,
     color: BLUE_DARK,
   },
 });
@@ -312,9 +336,9 @@ export const trackerIconsRowStyles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 15,
+    fontSize: 18,
     color: TEXT,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   row: {
     flexDirection: 'row',
@@ -323,31 +347,37 @@ export const trackerIconsRowStyles = StyleSheet.create({
   cell: {
     flex: 1,
     borderRadius: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 4,
+    height: 62,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     shadowColor: '#1A3A4A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  cellActive: {
+    transform: [{ translateY: -2 }],
+    shadowOpacity: 0.32,
+    shadowRadius: 14,
+    elevation: 10,
   },
   cellGlyphBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   cellGlyph: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 13,
+    fontSize: 15,
   },
   cellLabel: {
     fontFamily: 'Nunito_600SemiBold',
-    fontSize: 9,
+    fontSize: 10,
     letterSpacing: 0.5,
   },
 });
@@ -374,7 +404,7 @@ export const streaksCardStyles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 14,
+    fontSize: 16,
     color: TEXT,
   },
   divider: {
@@ -408,15 +438,15 @@ export const streaksCardStyles = StyleSheet.create({
   },
   bodyTitle: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 13,
+    fontSize: 15,
     color: TEXT,
   },
   bodyDesc: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 10,
+    fontSize: 12,
     color: MUTED,
-    marginTop: 3,
-    lineHeight: 14,
+    marginTop: 5,
+    lineHeight: 17,
   },
 });
 
@@ -442,21 +472,21 @@ export const yellowReminderStyles = StyleSheet.create({
   },
   ctaText: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 11,
+    fontSize: 13,
     color: YELLOW_TEXT,
-    lineHeight: 16,
+    lineHeight: 19,
   },
   ctaPill: {
     alignSelf: 'flex-start',
-    marginTop: 8,
+    marginTop: 10,
     backgroundColor: YELLOW_TITLE,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   ctaPillText: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 11,
+    fontSize: 13,
     color: YELLOW_BG,
   },
   ctaArrow: {
@@ -467,14 +497,14 @@ export const yellowReminderStyles = StyleSheet.create({
 
   msgCard: {
     marginHorizontal: 20,
-    marginTop: 22,
+    marginTop: 24,
     marginBottom: 0,
     backgroundColor: YELLOW_BG,
     borderRadius: 16,
-    padding: 14,
+    padding: 18,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: 14,
     shadowColor: '#B07F1A',
     shadowOffset: { width: -7, height: 4 },
     shadowOpacity: 0.20,
@@ -482,10 +512,10 @@ export const yellowReminderStyles = StyleSheet.create({
     elevation: 5,
   },
   msgMascot: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: BLUE_LIGHT,
+    width: 66,
+    height: 66,
+    borderRadius: 33,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -500,14 +530,14 @@ export const yellowReminderStyles = StyleSheet.create({
   },
   msgTitle: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 11,
+    fontSize: 15,
     color: YELLOW_TITLE,
   },
   msgText: {
     fontFamily: 'Nunito_400Regular',
-    fontSize: 11,
+    fontSize: 13,
     color: YELLOW_TEXT,
-    lineHeight: 15,
-    marginTop: 3,
+    lineHeight: 19,
+    marginTop: 7,
   },
 });

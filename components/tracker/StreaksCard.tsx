@@ -1,5 +1,6 @@
 import { View, Text } from 'react-native';
 import { streaksCardStyles as s } from '../../styles/tracker/tracker-redesign.styles';
+import { FireIcon } from '../shared/AppIcons';
 
 interface Props {
   currentStreak: number;
@@ -23,7 +24,9 @@ export default function StreaksCard({
 
       <View style={s.divider}>
         <View style={s.monthBlock}>
-          <Text style={[s.flame, currentStreak === 0 && s.flameMuted]}>🔥</Text>
+          <View style={currentStreak === 0 && s.flameMuted}>
+            <FireIcon size={28} color={currentStreak > 0 ? '#F4A261' : '#D8B58C'} />
+          </View>
         </View>
         <View style={s.body}>
           <Text style={s.bodyTitle}>Chuỗi hiện tại: {currentStreak} ngày</Text>

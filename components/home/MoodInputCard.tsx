@@ -1,22 +1,33 @@
 import { View, Text, TouchableOpacity } from 'react-native';
 import { moodInputCardStyles as s } from '../../styles/home/mood-input-card.styles';
+import { Heart } from '../shared/Heart';
+import { SoraMoodIcon, type SoraMoodExpression } from '../shared/Sora';
 
 interface Props {
   loggedToday: boolean;
   todayMoodLabel?: string | null;
+  todayMoodExpression?: SoraMoodExpression | null;
   todayNote?: string | null;
   onPress: () => void;
 }
 
-export default function MoodInputCard({ loggedToday, todayMoodLabel, todayNote, onPress }: Props) {
+export default function MoodInputCard({
+  loggedToday,
+  todayMoodLabel,
+  todayMoodExpression,
+  todayNote,
+  onPress,
+}: Props) {
   return (
     <View style={s.wrap}>
       <Text style={s.prompt}>Hôm nay tâm trạng bạn thế nào?</Text>
       <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.85}>
         <View style={[s.halo, loggedToday && s.haloLogged]}>
-          <View style={[s.heartCore, loggedToday && s.heartCoreLogged]}>
-            <Text style={s.heartGlyph}>{loggedToday ? 'OK' : '+'}</Text>
-          </View>
+          {loggedToday && todayMoodExpression ? (
+            <SoraMoodIcon size={58} expression={todayMoodExpression} />
+          ) : (
+            <Heart size={48} withHalo={false} idPrefix="home-mood-heart" />
+          )}
         </View>
         <Text style={s.title}>
           {loggedToday

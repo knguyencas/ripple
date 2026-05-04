@@ -1,11 +1,7 @@
 import { Platform } from 'react-native';
 import api from '../core/api';
-import {
-  startPedometerAccumulator,
-  getTodayPedometerSteps,
-  isPedometerHardwareAvailable,
-} from './pedometer.service';
 import { toDateKey } from '../../utils/shared/date.utils';
+import { setHealthSyncStatus } from './health-sync-preference.service';
 
 export interface StepsToday {
   steps: number;
@@ -27,18 +23,46 @@ function startOfDay(d: Date) {
   return x;
 }
 
-let healthKitReady = false;
-let healthConnectReady = false;
+let healthKitStepsReady = false;
+let healthKitSleepReady = false;
+let healthConnectStepsReady = false;
+let healthConnectSleepReady = false;
 
-async function ensureIosPermissions(): Promise<boolean> {
+async function ensureIosStepsPermission(): Promise<boolean> {
   if (Platform.OS !== 'ios') return false;
-  if (healthKitReady) return true;
+  if (healthKitStepsReady) return true;
   try {
     const AppleHealthKit = require('react-native-health').default;
     const permissions = {
       permissions: {
         read: [
           AppleHealthKit.Constants.Permissions.Steps,
+        ],
+        write: [],
+      },
+    };
+    await new Promise<void>((resolve, reject) => {
+      AppleHealthKit.initHealthKit(permissions, (err: string | null) => {
+        if (err) reject(new Error(err));
+        else resolve();
+      });
+    });
+    healthKitStepsReady = true;
+    return true;
+  } catch (e) {
+    console.warn('HealthKit steps init failed:', e);
+    return false;
+  }
+}
+
+async function ensureIosSleepPermission(): Promise<boolean> {
+  if (Platform.OS !== 'ios') return false;
+  if (healthKitSleepReady) return true;
+  try {
+    const AppleHealthKit = require('react-native-health').default;
+    const permissions = {
+      permissions: {
+        read: [
           AppleHealthKit.Constants.Permissions.SleepAnalysis,
         ],
         write: [],
@@ -50,48 +74,155 @@ async function ensureIosPermissions(): Promise<boolean> {
         else resolve();
       });
     });
-    healthKitReady = true;
+    healthKitSleepReady = true;
     return true;
   } catch (e) {
-    console.warn('HealthKit init failed:', e);
+    console.warn('HealthKit sleep init failed:', e);
     return false;
   }
 }
 
-async function ensureAndroidPermissions(): Promise<boolean> {
+async function ensureAndroidStepsPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') return false;
-
-  startPedometerAccumulator().catch(() => {});
-
-  if (healthConnectReady) return true;
+  if (healthConnectStepsReady) return true;
   try {
     const HC = require('react-native-health-connect');
     const available = await HC.getSdkStatus();
     if (available !== HC.SdkAvailabilityStatus.SDK_AVAILABLE) {
-      return await isPedometerHardwareAvailable();
+      return false;
     }
 
     const init = await HC.initialize();
-    if (!init) return await isPedometerHardwareAvailable();
+    if (!init) return false;
 
     const granted = await HC.requestPermission([
       { accessType: 'read', recordType: 'Steps' },
-      { accessType: 'read', recordType: 'SleepSession' },
     ]);
-    healthConnectReady = granted && granted.length > 0;
-    if (healthConnectReady) return true;
-
-    return await isPedometerHardwareAvailable();
+    healthConnectStepsReady = granted?.some((item: any) => item.recordType === 'Steps') ?? false;
+    return healthConnectStepsReady;
   } catch (e) {
-    console.warn('Health Connect init failed:', e);
-    return await isPedometerHardwareAvailable();
+    console.warn('Health Connect steps init failed:', e);
+    return false;
   }
 }
 
-export async function ensureHealthPermissions(): Promise<boolean> {
-  if (Platform.OS === 'ios') return ensureIosPermissions();
-  if (Platform.OS === 'android') return ensureAndroidPermissions();
-  return false;
+async function ensureAndroidSleepPermission(): Promise<boolean> {
+  if (Platform.OS !== 'android') return false;
+  if (healthConnectSleepReady) return true;
+  try {
+    const HC = require('react-native-health-connect');
+    const available = await HC.getSdkStatus();
+    if (available !== HC.SdkAvailabilityStatus.SDK_AVAILABLE) {
+      return false;
+    }
+
+    const init = await HC.initialize();
+    if (!init) return false;
+
+    const granted = await HC.requestPermission([
+      { accessType: 'read', recordType: 'SleepSession' },
+    ]);
+    healthConnectSleepReady = granted?.some((item: any) => item.recordType === 'SleepSession') ?? false;
+    return healthConnectSleepReady;
+  } catch (e) {
+    console.warn('Health Connect sleep init failed:', e);
+    return false;
+  }
+}
+
+export async function ensureStepsPermission(): Promise<boolean> {
+  const ok = Platform.OS === 'ios'
+    ? await ensureIosStepsPermission()
+    : Platform.OS === 'android'
+      ? await ensureAndroidStepsPermission()
+      : false;
+  await setHealthSyncStatus('steps', ok ? 'enabled' : 'disabled');
+  return ok;
+}
+
+export async function ensureSleepPermission(): Promise<boolean> {
+  const ok = Platform.OS === 'ios'
+    ? await ensureIosSleepPermission()
+    : Platform.OS === 'android'
+      ? await ensureAndroidSleepPermission()
+      : false;
+  await setHealthSyncStatus('sleep', ok ? 'enabled' : 'disabled');
+  return ok;
+}
+
+export async function requestSleepPermissionAndSync(): Promise<SleepToday | null> {
+  const ok = await ensureSleepPermission();
+  if (!ok) return null;
+  return syncSleepToBackend();
+}
+
+export async function requestStepsPermissionAndSync(): Promise<StepsToday | null> {
+  const ok = await ensureStepsPermission();
+  if (!ok) return null;
+  return syncStepsToBackend();
+}
+
+export async function syncManualSleepToBackend(data: {
+  bedtime: string;
+  wakeTime: string;
+  durationMin: number;
+}): Promise<SleepToday | null> {
+  const localDate = todayKey();
+  try {
+    await api.post('/health/sleep', {
+      bedtime: data.bedtime,
+      wakeTime: data.wakeTime,
+      duration: data.durationMin,
+      source: 'manual',
+    });
+    return { ...data, date: localDate };
+  } catch {
+    try {
+      await api.post('/health/sleep', {
+        bedtime: data.bedtime,
+        wakeTime: data.wakeTime,
+        duration: data.durationMin,
+      });
+      return { ...data, date: localDate };
+    } catch {
+      return null;
+    }
+  }
+}
+
+export function buildManualSleepSession(
+  bedHour: number,
+  bedMinute: number,
+  wakeHour: number,
+  wakeMinute: number
+): { bedtime: string; wakeTime: string; durationMin: number } {
+  const now = new Date();
+  const wake = new Date(now);
+  wake.setHours(wakeHour, wakeMinute, 0, 0);
+  if (wake.getTime() > now.getTime()) {
+    wake.setDate(wake.getDate() - 1);
+  }
+
+  const bed = new Date(wake);
+  bed.setHours(bedHour, bedMinute, 0, 0);
+  if (bed.getTime() >= wake.getTime()) {
+    bed.setDate(bed.getDate() - 1);
+  }
+
+  const durationMin = Math.max(0, Math.round((wake.getTime() - bed.getTime()) / 60000));
+  return {
+    bedtime: bed.toISOString(),
+    wakeTime: wake.toISOString(),
+    durationMin,
+  };
+}
+
+export function canReadStepsFromHealth(): boolean {
+  return healthKitStepsReady || healthConnectStepsReady;
+}
+
+export function canReadSleepFromHealth(): boolean {
+  return healthKitSleepReady || healthConnectSleepReady;
 }
 
 async function readStepsToday(): Promise<number | null> {
@@ -112,20 +243,19 @@ async function readStepsToday(): Promise<number | null> {
     }
   }
   if (Platform.OS === 'android') {
-    if (healthConnectReady) {
-      try {
-        const HC = require('react-native-health-connect');
-        const start = startOfDay(new Date()).toISOString();
-        const end = new Date().toISOString();
-        const res = await HC.readRecords('Steps', {
-          timeRangeFilter: { operator: 'between', startTime: start, endTime: end },
-        });
-        const total = (res.records ?? []).reduce((acc: number, r: any) => acc + (r.count ?? 0), 0);
-        if (total > 0) return Math.round(total);
-      } catch {
-      }
+    if (!healthConnectStepsReady) return null;
+    try {
+      const HC = require('react-native-health-connect');
+      const start = startOfDay(new Date()).toISOString();
+      const end = new Date().toISOString();
+      const res = await HC.readRecords('Steps', {
+        timeRangeFilter: { operator: 'between', startTime: start, endTime: end },
+      });
+      const total = (res.records ?? []).reduce((acc: number, r: any) => acc + (r.count ?? 0), 0);
+      return Math.round(total);
+    } catch {
+      return null;
     }
-    return await getTodayPedometerSteps();
   }
   return null;
 }
@@ -161,6 +291,7 @@ async function readSleepLastNight(): Promise<{ bedtime: string; wakeTime: string
     }
   }
   if (Platform.OS === 'android') {
+    if (!healthConnectSleepReady) return null;
     try {
       const HC = require('react-native-health-connect');
       const res = await HC.readRecords('SleepSession', {
@@ -183,7 +314,7 @@ async function readSleepLastNight(): Promise<{ bedtime: string; wakeTime: string
 }
 
 export async function syncStepsToBackend(): Promise<StepsToday | null> {
-  const ok = await ensureHealthPermissions();
+  const ok = await ensureStepsPermission();
   if (!ok) return null;
   const steps = await readStepsToday();
   if (steps == null) return null;
@@ -197,7 +328,7 @@ export async function syncStepsToBackend(): Promise<StepsToday | null> {
 }
 
 export async function syncSleepToBackend(): Promise<SleepToday | null> {
-  const ok = await ensureHealthPermissions();
+  const ok = await ensureSleepPermission();
   if (!ok) return null;
   const data = await readSleepLastNight();
   if (!data) return null;

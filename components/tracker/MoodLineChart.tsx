@@ -11,6 +11,8 @@ import { Colors } from '../../constants/colors';
 import { moodLineChartStyles as s } from '../../styles/tracker/tracker.styles';
 import { toDateKey as dateKey } from '../../utils/shared/date.utils';
 
+const TRACKER_ACTION_BLUE = '#2E6F8E';
+
 type Period = '7d' | '1m' | '3m' | '6m';
 
 interface Props {
@@ -110,7 +112,7 @@ function lineSegment(
 }
 
 export default function MoodLineChart({ scoreByDate }: Props) {
-  const [period, setPeriod] = useState<Period>('1m');
+  const [period, setPeriod] = useState<Period>('7d');
   const [plotWidth, setPlotWidth] = useState(0);
   const chartOpacity = useRef(new Animated.Value(1)).current;
   const chartTranslateY = useRef(new Animated.Value(0)).current;
@@ -192,8 +194,7 @@ export default function MoodLineChart({ scoreByDate }: Props) {
   return (
     <View style={s.card}>
       <View style={s.header}>
-        <Text style={s.title}>Phân tích cảm xúc</Text>
-        <Text style={s.subtitle}>Xu hướng tâm trạng theo thời gian</Text>
+        <Text style={s.title}>Mood track</Text>
       </View>
 
       <View style={s.toggle}>
@@ -248,7 +249,7 @@ export default function MoodLineChart({ scoreByDate }: Props) {
                   const y1 = yFor(points[seg.from].score!);
                   const x2 = xFor(seg.to);
                   const y2 = yFor(points[seg.to].score!);
-                  const style = lineSegment(x1, y1, x2, y2, Colors.teal, LINE_THICKNESS);
+                  const style = lineSegment(x1, y1, x2, y2, TRACKER_ACTION_BLUE, LINE_THICKNESS);
                   return style ? <View key={i} style={style} /> : null;
                 })}
 

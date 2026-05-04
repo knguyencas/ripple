@@ -27,6 +27,13 @@ export const moodWheelStyles = StyleSheet.create({
     fontSize: 64,
     marginBottom: 4,
   },
+  moodSoraBig: {
+    width: 82,
+    height: 82,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
   moodName: {
     fontFamily: 'Nunito_700Bold',
     fontSize: 20,
@@ -50,10 +57,12 @@ export const moodWheelStyles = StyleSheet.create({
     marginBottom: 16,
   },
   confirmBtn: {
-    backgroundColor: Colors.ocean,
-    borderRadius: 20,
+    backgroundColor: '#5B9BC8',
+    borderRadius: 28,
+    minHeight: 54,
     paddingVertical: 15,
     alignItems: 'center',
+    justifyContent: 'center',
     width: width - 48,
   },
   confirmBtnText: {
@@ -73,11 +82,10 @@ export const moodWheelStyles = StyleSheet.create({
   },
 });
 
-export const MOOD_WHEEL_SIZE = Math.min(width * 0.78, height * 0.38, 320);
+export const MOOD_WHEEL_SIZE = Math.min(width * 0.88, height * 0.38, 340);
 export const MOOD_WHEEL_RADIUS = MOOD_WHEEL_SIZE / 2;
-export const MOOD_WHEEL_INNER_RADIUS = MOOD_WHEEL_SIZE * 0.18;
-export const MOOD_WHEEL_CLIP_HEIGHT = MOOD_WHEEL_SIZE / 2 + 20;
-const NEEDLE_LEN = MOOD_WHEEL_RADIUS / 2;
+export const MOOD_WHEEL_INNER_RADIUS = MOOD_WHEEL_SIZE * 0.22;
+export const MOOD_WHEEL_CLIP_HEIGHT = MOOD_WHEEL_SIZE / 2 + 44;
 
 export const wheelStyles = StyleSheet.create({
   wheelClip: {
@@ -107,34 +115,10 @@ export const wheelStyles = StyleSheet.create({
     width: MOOD_WHEEL_SIZE,
     height: MOOD_WHEEL_CLIP_HEIGHT,
   },
-  needleLine: {
+  needleSvg: {
     position: 'absolute',
-    width: 3,
-    height: NEEDLE_LEN - 6,
-    backgroundColor: '#1A3A5C',
-    top: MOOD_WHEEL_RADIUS - NEEDLE_LEN + 4,
-    left: MOOD_WHEEL_SIZE / 2 - 1.5,
-    borderRadius: 2,
-  },
-  needleTip: {
-    position: 'absolute',
-    top: MOOD_WHEEL_RADIUS - NEEDLE_LEN - 6,
-    left: MOOD_WHEEL_SIZE / 2 - 5,
-    width: 0, height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
-    borderBottomWidth: 9,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: '#1A3A5C',
-  },
-  needleCenter: {
-    position: 'absolute',
-    width: 14, height: 14,
-    borderRadius: 7,
-    backgroundColor: '#1A3A5C',
-    top: MOOD_WHEEL_RADIUS - 7,
-    left: MOOD_WHEEL_SIZE / 2 - 7,
+    top: 0,
+    left: 0,
   },
 });
 

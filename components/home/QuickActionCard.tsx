@@ -43,6 +43,11 @@ export default function QuickActionCard({
         <View style={s.titleBlock}>
           <View style={s.titleRow}>
             <Text style={s.title} numberOfLines={1}>{title}</Text>
+            {isNew && (
+              <View style={s.badgeNew}>
+                <Text style={s.badgeNewText}>MỚI</Text>
+              </View>
+            )}
           </View>
           <Text style={s.goal} numberOfLines={1}>{goalLabel}</Text>
         </View>

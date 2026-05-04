@@ -12,7 +12,11 @@ import MeditationModal from '../../tracker/MeditationModal';
 
 const palette = QuickActionAccent.meditate;
 
-export default function MeditateQuickCard() {
+interface Props {
+  onTaskStateChanged?: () => void;
+}
+
+export default function MeditateQuickCard({ onTaskStateChanged }: Props) {
   const [data, setData] = useState<MeditationToday | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -25,7 +29,6 @@ export default function MeditateQuickCard() {
 
   const totalMin = data?.totalMinutes ?? 0;
   const goalMin = data?.goalMin ?? 10;
-  const isFirstTime = data?.isFirstTime ?? totalMin === 0;
   const pct = Math.min(1, totalMin / goalMin);
 
   const buttonLabel =
@@ -39,9 +42,7 @@ export default function MeditateQuickCard() {
         title="Thiền"
         goalLabel={`Mục tiêu ${goalMin} phút`}
         accent="meditate"
-        iconLetter="T"
-        isNew={isFirstTime}
-        dashed={isFirstTime}
+        iconLetter="♧"
       >
         <View style={s.valueRow}>
           <Text style={[s.valueBig, { color: palette.primary }]}>{totalMin}</Text>
@@ -69,7 +70,10 @@ export default function MeditateQuickCard() {
       <MeditationModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onSessionSaved={() => { void load(); }}
+        onSessionSaved={() => {
+          void load();
+          onTaskStateChanged?.();
+        }}
       />
     </>
   );
