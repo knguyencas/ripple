@@ -8,8 +8,11 @@ import { router } from 'expo-router';
 import { displayNameStyles as s } from '../../styles/auth/display-name.styles';
 import api from '../../services/core/api';
 import { useAuthStore } from '../../stores/auth.store';
+import AuthBackdrop from '../../components/auth/AuthBackdrop';
+import Button from '../../components/shared/Button';
+import { normalizeAgeGroup } from '../../utils/profile/age-group.utils';
 
-const ITEM_HEIGHT = 56;
+const ITEM_HEIGHT = 46;
 const AGES = Array.from({ length: 91 }, (_, i) => i + 10);
 const DEFAULT_AGE = 18;
 const DEFAULT_INDEX = DEFAULT_AGE - 10;
@@ -57,11 +60,19 @@ export default function DisplayNameScreen() {
     });
   };
 
-  const onScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const index = Math.round(e.nativeEvent.contentOffset.y / ITEM_HEIGHT);
+  const updateAgeFromOffset = useCallback((offsetY: number) => {
+    const index = Math.round(offsetY / ITEM_HEIGHT);
     const clamped = Math.max(0, Math.min(index, AGES.length - 1));
     setSelectedAge(AGES[clamped]);
   }, []);
+
+  const onScrollAge = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    updateAgeFromOffset(e.nativeEvent.contentOffset.y);
+  }, [updateAgeFromOffset]);
+
+  const onScrollEnd = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    updateAgeFromOffset(e.nativeEvent.contentOffset.y);
+  }, [updateAgeFromOffset]);
 
   const handleTapAge = () => {
     const now = Date.now();
@@ -74,12 +85,13 @@ export default function DisplayNameScreen() {
 
   const handleDone = async () => {
     const finalAge = showManual ? manualAge : String(selectedAge);
-    if (!finalAge) { setError('Vui lòng chọn độ tuổi'); return; }
+    const finalAgeGroup = normalizeAgeGroup(finalAge);
+    if (!finalAgeGroup) { setError('Vui lòng chọn độ tuổi'); return; }
     setLoading(true);
     setError('');
     try {
       const res = await api.put('/users/me',
-        { displayName: displayName.trim() || null, ageGroup: finalAge },
+        { displayName: displayName.trim() || null, ageGroup: finalAgeGroup },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       await updateUser({
@@ -109,8 +121,7 @@ export default function DisplayNameScreen() {
 
   return (
     <View style={s.container}>
-      <View style={s.wave1} />
-      <View style={s.wave2} />
+      <AuthBackdrop />
       <Dots />
 
       <Animated.View style={[s.content, {
@@ -126,9 +137,9 @@ export default function DisplayNameScreen() {
               Nơi bạn ghi lại cảm xúc,{'\n'}hiểu bản thân hơn mỗi ngày.
             </Text>
             <Text style={s.hint}>Cho mình biết thêm một chút về bạn nhé</Text>
-            <TouchableOpacity style={s.btnPrimary} onPress={() => animateNext(1)}>
-              <Text style={s.btnText}>Bắt đầu nào</Text>
-            </TouchableOpacity>
+            <View style={s.actionSlot}>
+              <Button title="Bắt đầu nào" onPress={() => animateNext(1)} />
+            </View>
           </View>
         )}
 
@@ -150,9 +161,9 @@ export default function DisplayNameScreen() {
             {displayName ? (
               <Text style={s.preview}>Xin chào, {displayName}</Text>
             ) : null}
-            <TouchableOpacity style={s.btnPrimary} onPress={() => animateNext(2)}>
-              <Text style={s.btnText}>Tiếp theo</Text>
-            </TouchableOpacity>
+            <View style={s.actionSlot}>
+              <Button title="Tiếp theo" onPress={() => animateNext(2)} />
+            </View>
             <TouchableOpacity onPress={() => animateNext(2)} style={s.btnSkip}>
               <Text style={s.skipText}>Bỏ qua</Text>
             </TouchableOpacity>
@@ -167,71 +178,74 @@ export default function DisplayNameScreen() {
               Giúp tôi hiểu bạn hơn{'\n'}và cá nhân hóa trải nghiệm.
             </Text>
 
-            {showManual ? (
-              <TextInput
-                style={s.manualInput}
-                value={manualAge}
-                onChangeText={setManualAge}
-                keyboardType="numeric"
-                autoFocus
-                maxLength={3}
-                onBlur={() => {
-                  const parsed = parseInt(manualAge);
-                  if (!isNaN(parsed) && parsed >= 10 && parsed <= 100) {
-                    setSelectedAge(parsed);
-                  }
-                  setShowManual(false);
-                }}
-              />
-            ) : (
-              <TouchableOpacity activeOpacity={1} onPress={handleTapAge}>
-                <View style={s.pickerWrap}>
-                  <View style={s.pickerOverlayTop} pointerEvents="none" />
-                  <View style={s.pickerOverlayBottom} pointerEvents="none" />
-                  <View style={s.pickerSelector} pointerEvents="none" />
-                  <FlatList
-                    ref={listRef}
-                    data={AGES}
-                    keyExtractor={(item) => String(item)}
-                    showsVerticalScrollIndicator={false}
-                    snapToInterval={ITEM_HEIGHT}
-                    decelerationRate="fast"
-                    onMomentumScrollEnd={onScrollEnd}
-                    onScrollEndDrag={onScrollEnd}
-                    onLayout={() => setPickerReady(true)}
-                    getItemLayout={(_, index) => ({
-                      length: ITEM_HEIGHT,
-                      offset: ITEM_HEIGHT * index,
-                      index,
-                    })}
-                    ListHeaderComponent={<View style={s.pickerSpacer} />}
-                    ListFooterComponent={<View style={s.pickerSpacer} />}
-                    renderItem={({ item }) => (
-                      <View style={s.pickerItem}>
-                        <Text style={[
-                          s.pickerItemText,
-                          item === selectedAge && s.pickerItemTextActive
-                        ]}>
-                          {item}
-                        </Text>
-                      </View>
-                    )}
-                  />
-                </View>
-              </TouchableOpacity>
-            )}
+            <View style={s.ageControlSlot}>
+              {showManual ? (
+                <TextInput
+                  style={s.manualInput}
+                  value={manualAge}
+                  onChangeText={setManualAge}
+                  keyboardType="numeric"
+                  autoFocus
+                  maxLength={3}
+                  onBlur={() => {
+                    const parsed = parseInt(manualAge);
+                    if (!isNaN(parsed) && parsed >= 10 && parsed <= 100) {
+                      setSelectedAge(parsed);
+                    }
+                    setShowManual(false);
+                  }}
+                />
+              ) : (
+                <TouchableOpacity style={s.ageTouchable} activeOpacity={1} onPress={handleTapAge}>
+                  <View style={s.pickerWrap}>
+                    <View style={s.pickerSelector} pointerEvents="none" />
+                    <FlatList
+                      ref={listRef}
+                      style={s.pickerList}
+                      data={AGES}
+                      keyExtractor={(item) => String(item)}
+                      showsVerticalScrollIndicator={false}
+                      snapToInterval={ITEM_HEIGHT}
+                      decelerationRate="fast"
+                      onScroll={onScrollAge}
+                      scrollEventThrottle={16}
+                      onMomentumScrollEnd={onScrollEnd}
+                      onScrollEndDrag={onScrollEnd}
+                      onLayout={() => setPickerReady(true)}
+                      getItemLayout={(_, index) => ({
+                        length: ITEM_HEIGHT,
+                        offset: ITEM_HEIGHT * index,
+                        index,
+                      })}
+                      ListHeaderComponent={<View style={s.pickerSpacer} />}
+                      ListFooterComponent={<View style={s.pickerSpacer} />}
+                      renderItem={({ item }) => (
+                        <View style={s.pickerItem}>
+                          <Text style={[
+                            s.pickerItemText,
+                            item === selectedAge && s.pickerItemTextActive
+                          ]}>
+                            {item}
+                          </Text>
+                        </View>
+                      )}
+                    />
+                    <View style={s.pickerOverlayTop} pointerEvents="none" />
+                    <View style={s.pickerOverlayBottom} pointerEvents="none" />
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
 
             {error ? <Text style={s.error}>{error}</Text> : null}
 
-            <TouchableOpacity
-              style={[s.btnPrimary, loading && s.btnDisabled]}
-              onPress={handleDone}
-              disabled={loading}
-            >
-              <Text style={s.btnText}>
-                {loading ? 'Đang lưu...' : 'Hoàn tất'}
-              </Text>
-            </TouchableOpacity>
+            <View style={s.actionSlot}>
+              <Button
+                title={loading ? 'Đang lưu...' : 'Hoàn tất'}
+                onPress={handleDone}
+                disabled={loading}
+              />
+            </View>
             <TouchableOpacity onPress={handleSkipAll} style={s.btnSkip} disabled={loading}>
               <Text style={s.skipText}>Để sau</Text>
             </TouchableOpacity>
@@ -253,15 +267,15 @@ export default function DisplayNameScreen() {
             <Text style={s.modalText}>
               Chào {savedName}, hành trình cảm xúc của bạn bắt đầu từ đây.
             </Text>
-            <TouchableOpacity
-              style={s.modalBtn}
-              onPress={() => {
+            <View style={s.modalActionSlot}>
+              <Button
+                title="Tiếp tục"
+                onPress={() => {
                 setShowSuccess(false);
                 router.replace('/tabs/home');
               }}
-            >
-              <Text style={s.modalBtnText}>Tiếp tục</Text>
-            </TouchableOpacity>
+              />
+            </View>
           </View>
         </View>
       </Modal>

@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView
+  KeyboardAvoidingView, Platform, ScrollView, Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { authStyles as styles } from '../../styles/auth/auth.styles';
-import Button from '../../components/ui/Button';
-import Input from '../../components/ui/Input';
+import Button from '../../components/shared/Button';
+import Input from '../../components/shared/Input';
 import api from '../../services/core/api';
 import { useAuthStore } from '../../stores/auth.store';
+import { AppleIcon, GoogleIcon } from '../../components/shared/AppIcons';
+import AuthBackdrop from '../../components/auth/AuthBackdrop';
+import {
+  createMediaKeyEnvelope,
+  hasCompleteMediaKeyEnvelope,
+  unlockMediaKeyFromPassword,
+} from '../../services/journal/media-crypto.service';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -16,6 +23,13 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const setAuth = useAuthStore((state) => state.setAuth);
+
+  const handleSocialAuth = (provider: 'Google' | 'Apple') => {
+    Alert.alert(
+      `Đăng nhập bằng ${provider}`,
+      'Cần kết nối OAuth ở backend trước khi đăng nhập bằng tài khoản này.'
+    );
+  };
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -26,7 +40,20 @@ export default function LoginScreen() {
     setError('');
     try {
       const res = await api.post('/auth/login', { username, password });
-      await setAuth(res.data.token, res.data.user);
+      const token = res.data.token;
+      let user = res.data.user;
+
+      if (hasCompleteMediaKeyEnvelope(user)) {
+        await unlockMediaKeyFromPassword(password, user);
+      } else {
+        const envelope = await createMediaKeyEnvelope(password);
+        const keyRes = await api.put('/users/media-key', envelope, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        user = { ...user, ...keyRes.data };
+      }
+
+      await setAuth(token, user);
       router.replace('/tabs/home');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Đăng nhập thất bại');
@@ -41,12 +68,11 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.wave1} />
-        <View style={styles.wave2} />
+        <AuthBackdrop />
 
         <View style={styles.headerCentered}>
-          <Text style={styles.titleCentered}>Ripple</Text>
-          <Text style={styles.subtitleCentered}>Chào mừng trở lại</Text>
+          <Text style={styles.title}>Ripple</Text>
+          <Text style={styles.subtitle}>Chào mừng trở lại</Text>
         </View>
 
         <View style={styles.form}>
@@ -73,6 +99,34 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={loading}
           />
+
+          <View style={styles.socialSection}>
+            <View style={styles.socialDividerRow}>
+              <View style={styles.socialDivider} />
+              <Text style={styles.socialDividerText}>hoặc tiếp tục với</Text>
+              <View style={styles.socialDivider} />
+            </View>
+
+            <View style={styles.socialRow}>
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialAuth('Google')}
+                activeOpacity={0.82}
+              >
+                <GoogleIcon size={20} />
+                <Text style={styles.socialButtonText}>Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.socialButton}
+                onPress={() => handleSocialAuth('Apple')}
+                activeOpacity={0.82}
+              >
+                <AppleIcon size={20} />
+                <Text style={styles.socialButtonText}>Apple</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <TouchableOpacity
             style={styles.btnSecondary}

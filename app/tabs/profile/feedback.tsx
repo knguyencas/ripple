@@ -20,6 +20,7 @@ import {
   profilePageStyles as p,
 } from '../../../styles/profile/profile-pages.styles';
 import api from '../../../services/core/api';
+import AppBackButton from '../../../components/shared/AppBackButton';
 
 export default function FeedbackScreen() {
   const [rating, setRating] = useState(0);
@@ -62,9 +63,7 @@ export default function FeedbackScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={s.header}>
-            <TouchableOpacity onPress={() => router.back()} style={p.backButton}>
-              <Text style={p.backButtonText}>← Quay lại</Text>
-            </TouchableOpacity>
+            <AppBackButton />
             <Text style={s.headerTitle}>Gửi phản hồi</Text>
           </View>
 

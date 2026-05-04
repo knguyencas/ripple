@@ -1,7 +1,14 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
+
+const AUTH_BLUE = '#2E6F8E';
+const AUTH_INPUT_BG = '#EAF7FB';
+const AUTH_INPUT_BORDER = '#DEE7ED';
+const WEB_INPUT_RESET = Platform.OS === 'web'
+  ? ({ outlineStyle: 'none', outlineWidth: 0, boxShadow: 'none' } as any)
+  : {};
 
 export const authStyles = StyleSheet.create({
   container: {
@@ -10,60 +17,50 @@ export const authStyles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: Spacing.xl,
+    paddingHorizontal: 26,
+    paddingBottom: 36,
   },
   wave1: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: Colors.mist,
-    opacity: 0.5,
-    top: -80,
-    right: -80,
+    display: 'none',
   },
   wave2: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: Colors.wave,
-    opacity: 0.1,
-    bottom: 50,
-    left: -60,
+    display: 'none',
   },
   header: {
-    paddingTop: 60,
-    paddingBottom: Spacing.xl,
+    alignItems: 'center',
+    paddingTop: 54,
+    paddingBottom: 32,
   },
-  backBtn: {
+  registerBackButton: {
+    alignSelf: 'flex-start',
     marginBottom: Spacing.md,
-  },
-  backText: {
-    color: Colors.teal,
-    fontSize: 15,
-    fontWeight: '600',
   },
   title: {
     ...Typography.h1,
-    color: Colors.textPrimary,
-    marginBottom: Spacing.xs,
+    color: AUTH_BLUE,
+    fontSize: 32,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   titleCentered: {
     ...Typography.h1,
-    color: Colors.teal,
+    color: AUTH_BLUE,
     fontSize: 32,
-    letterSpacing: 2,
-    marginBottom: Spacing.xs,
+    letterSpacing: 1.5,
+    marginBottom: 6,
     textAlign: 'center',
   },
   subtitle: {
     ...Typography.bodySecondary,
+    color: Colors.textSecondary,
+    fontSize: 16,
+    textAlign: 'center',
   },
   subtitleCentered: {
     ...Typography.bodySecondary,
     fontSize: 16,
+    color: Colors.textSecondary,
     textAlign: 'center',
   },
   emoji: {
@@ -73,11 +70,12 @@ export const authStyles = StyleSheet.create({
   },
   headerCentered: {
     alignItems: 'center',
-    paddingTop: 80,
-    paddingBottom: Spacing.xl,
+    paddingTop: 92,
+    paddingBottom: 34,
   },
   form: {
-    gap: Spacing.md,
+    gap: 18,
+    alignSelf: 'stretch',
   },
   inputGroup: {
     gap: Spacing.xs,
@@ -88,9 +86,10 @@ export const authStyles = StyleSheet.create({
     color: Colors.textPrimary,
   },
   input: {
+    ...WEB_INPUT_RESET,
     backgroundColor: Colors.surface,
     borderRadius: Spacing.radiusMd,
-    borderWidth: 1,
+    borderWidth: 0.8,
     borderColor: Colors.border,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm + 4,
@@ -118,15 +117,61 @@ export const authStyles = StyleSheet.create({
   },
   btnSecondary: {
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
+    paddingVertical: 10,
   },
   btnSecondaryText: {
     ...Typography.bodySecondary,
-    fontSize: 14,
+    fontSize: 15,
+    color: Colors.textSecondary,
   },
   btnSecondaryLink: {
-    color: Colors.teal,
+    color: AUTH_BLUE,
     fontWeight: '600',
+  },
+  socialSection: {
+    gap: 14,
+    marginTop: 2,
+  },
+  socialDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  socialDivider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(46,111,142,0.16)',
+  },
+  socialDividerText: {
+    fontFamily: 'Nunito_400Regular',
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  socialRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  socialButton: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 0.8,
+    borderColor: AUTH_INPUT_BORDER,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    shadowColor: '#1A3A5C',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  socialButtonText: {
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 14,
+    color: Colors.textPrimary,
   },
   ageRow: {
     flexDirection: 'row',
@@ -137,7 +182,7 @@ export const authStyles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: Spacing.radiusFull,
-    borderWidth: 1,
+    borderWidth: 0.8,
     borderColor: Colors.border,
     backgroundColor: Colors.surface,
   },

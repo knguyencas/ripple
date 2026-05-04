@@ -1,21 +1,19 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
 import { commonStyles as c } from '../../../styles/shared/common.styles';
 import { profileStyles as s } from '../../../styles/profile/profile.styles';
 import {
   profilePageStyles as p,
   profileTermsPageStyles as ps,
 } from '../../../styles/profile/profile-pages.styles';
+import AppBackButton from '../../../components/shared/AppBackButton';
 
 export default function TermsScreen() {
   return (
     <SafeAreaView style={c.safe}>
       <ScrollView contentContainerStyle={p.scrollBottomLarge}>
         <View style={s.header}>
-          <TouchableOpacity onPress={() => router.back()} style={p.backButton}>
-            <Text style={p.backButtonText}>← Quay lại</Text>
-          </TouchableOpacity>
+          <AppBackButton />
           <Text style={s.headerTitle}>Điều khoản & Quyền riêng tư</Text>
         </View>
 
