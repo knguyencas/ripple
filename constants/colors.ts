@@ -6,7 +6,7 @@ export const Colors = {
   deep:    '#1A3A5C',
   abyss:   '#0F2744',
 
-  foam:    '#F5FBFD',
+  foam:    '#F4F8FB',
   surface: '#E8F4F8',
   muted:   '#4A7A9B',
 

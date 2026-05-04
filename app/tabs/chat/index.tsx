@@ -1,17 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, Alert,
+  TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../../constants/colors';
 import { chatStyles as s } from '../../../styles/chat/chat.styles';
 import { useAuthStore } from '../../../stores/auth.store';
 import api from '../../../services/core/api';
+import { SoraInHalo } from '../../../components/shared/Sora';
+import AppBackButton from '../../../components/shared/AppBackButton';
 import {
   loadChatHistory,
   saveChatHistory,
-  clearChatHistory,
   ChatMessage as Message,
 } from '../../../services/chat/chat-history.service';
 
@@ -37,9 +38,7 @@ export default function ChatScreen() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  const { user, token } = useAuthStore();
-
-  const displayName = user?.displayName || user?.username || 'bạn';
+  const { token } = useAuthStore();
 
   useEffect(() => {
     (async () => {
@@ -122,36 +121,20 @@ export default function ChatScreen() {
         keyboardVerticalOffset={0}
       >
         <View style={s.header}>
-          <View style={s.headerAvatar}>
-            <Text style={s.headerAvatarText}>R</Text>
+          <AppBackButton style={s.headerBackButton} />
+
+          <SoraInHalo
+            size={32}
+            haloSize={46}
+            pose="idle"
+            withShadow
+            idPrefix="chat-header-sora"
+          />
+
+          <View style={s.headerTextBlock}>
+            <Text style={s.headerName}>Sora</Text>
+            <Text style={s.headerStatus}>● Đang lắng nghe bạn</Text>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={s.headerName}>Ripple AI</Text>
-            <Text style={s.headerStatus}>● Luôn sẵn sàng lắng nghe</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => {
-              Alert.alert(
-                'Xoá cuộc trò chuyện?',
-                'Toàn bộ lịch sử chat trên thiết bị sẽ bị xoá. Hành động này không thể hoàn tác.',
-                [
-                  { text: 'Huỷ', style: 'cancel' },
-                  {
-                    text: 'Xoá',
-                    style: 'destructive',
-                    onPress: async () => {
-                      await clearChatHistory();
-                      setMessages(INITIAL_MESSAGES);
-                    },
-                  },
-                ]
-              );
-            }}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Xoá cuộc trò chuyện"
-          >
-            <Text style={{ fontSize: 13, fontFamily: 'Nunito_600SemiBold', color: Colors.textSecondary, paddingHorizontal: 6 }}>Xoá</Text>
-          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -172,9 +155,7 @@ export default function ChatScreen() {
                 )}
                 <View style={[s.msgRow, isAI ? s.msgRowAI : s.msgRowUser]}>
                   {isAI && (
-                    <View style={s.aiAvatar}>
-                      <Text style={s.aiAvatarText}>R</Text>
-                    </View>
+                    <SoraInHalo size={20} haloSize={28} pose="idle" idPrefix={`chat-sora-${msg.id}`} />
                   )}
                   <View style={[s.bubble, isAI ? s.bubbleAI : s.bubbleUser]}>
                     <Text style={[s.bubbleText, isAI ? s.bubbleTextAI : s.bubbleTextUser]}>
@@ -188,9 +169,7 @@ export default function ChatScreen() {
 
           {loading && (
             <View style={[s.msgRow, s.msgRowAI]}>
-              <View style={s.aiAvatar}>
-                <Text style={s.aiAvatarText}>R</Text>
-              </View>
+              <SoraInHalo size={20} haloSize={28} pose="idle" idPrefix="chat-sora-typing" />
               <View style={[s.bubble, s.bubbleAI, s.bubbleTyping]}>
                 <Text style={s.typingDots}>• • •</Text>
               </View>
@@ -220,7 +199,7 @@ export default function ChatScreen() {
         <View style={s.inputWrap}>
           <TextInput
             style={s.input}
-            placeholder="Nhắn tin với Ripple AI..."
+            placeholder="Nhắn tin với Sora..."
             placeholderTextColor={Colors.placeholder}
             value={input}
             onChangeText={setInput}

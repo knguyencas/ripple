@@ -2,6 +2,13 @@ import { StyleSheet, Platform } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { Spacing } from '../../constants/spacing';
 
+const APP_BLUE = '#2E6F8E';
+const INPUT_BG = '#F8FAFC';
+const INPUT_BORDER = '#DEE7ED';
+const WEB_INPUT_RESET = Platform.OS === 'web'
+  ? ({ outlineStyle: 'none', outlineWidth: 0, boxShadow: 'none' } as any)
+  : {};
+
 export const cardShadow: any = Platform.OS === 'web'
   ? { boxShadow: '0 2px 8px rgba(26,58,92,0.07)' }
   : { shadowColor: '#1A3A5C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 };
@@ -48,56 +55,63 @@ export const commonStyles = StyleSheet.create({
 
   inputGroup: {
     gap: Spacing.xs,
+    width: '100%',
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: 'Nunito_600SemiBold',
     color: Colors.textPrimary,
   },
   input: {
-    backgroundColor: Colors.surface,
-    borderRadius: Spacing.radiusMd,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 4,
-    fontSize: 15,
+    ...WEB_INPUT_RESET,
+    backgroundColor: INPUT_BG,
+    borderRadius: 18,
+    borderWidth: 0.8,
+    borderColor: INPUT_BORDER,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+    fontSize: 16,
     fontFamily: 'Nunito_400Regular',
     color: Colors.textPrimary,
   },
 
   btnPrimary: {
-    backgroundColor: Colors.teal,
+    backgroundColor: APP_BLUE,
     borderRadius: Spacing.radiusFull,
-    paddingVertical: Spacing.md,
+    paddingVertical: 16,
     alignItems: 'center',
+    shadowColor: APP_BLUE,
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
   },
   btnSecondary: {
     backgroundColor: 'transparent',
     borderRadius: Spacing.radiusFull,
     paddingVertical: Spacing.md,
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 0.8,
     borderColor: Colors.teal,
   },
   btnDisabled: {
     opacity: 0.6,
   },
   btnText: {
-    fontFamily: 'Nunito_600SemiBold',
-    fontSize: 15,
+    fontFamily: 'Nunito_700Bold',
+    fontSize: 16,
     color: Colors.textLight,
   },
   btnTextSecondary: {
     fontFamily: 'Nunito_600SemiBold',
     fontSize: 15,
-    color: Colors.teal,
+    color: APP_BLUE,
   },
 
   card: {
     backgroundColor: Colors.surface,
     borderRadius: Spacing.radiusLg,
-    borderWidth: 1,
+    borderWidth: 0.8,
     borderColor: Colors.border,
     padding: Spacing.md,
   },

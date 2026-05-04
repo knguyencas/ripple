@@ -13,7 +13,7 @@ export default function Button({ title, onPress, variant = 'primary', disabled }
     <TouchableOpacity
       style={[
         variant === 'primary' ? styles.btnPrimary : styles.btnSecondary,
-        disabled && styles.btnDisabled
+        disabled && styles.btnDisabled,
       ]}
       onPress={onPress}
       disabled={disabled}

@@ -13,8 +13,11 @@ interface Props {
 }
 
 export default function Input({
-  label, value, onChangeText,
-  placeholder, secureTextEntry,
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry,
   keyboardType = 'default',
   autoCapitalize = 'sentences',
 }: Props) {
