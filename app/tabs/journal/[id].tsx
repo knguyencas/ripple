@@ -32,6 +32,7 @@ import { confirmDestructiveAction } from '../../../utils/shared/confirm-action.u
 export default function LogDetailScreen() {
   const router = useRouter();
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
+  const editReturnTo = `/tabs/journal/${id}?edit=true`;
   const { width: viewportWidth, height: viewportHeight } = useWindowDimensions();
 
   const [log,       setLog]       = useState<any>(null);
@@ -368,7 +369,10 @@ export default function LogDetailScreen() {
             ) : (
               <AppIconButton
                 icon="edit"
-                onPress={() => setIsEditing(true)}
+                onPress={() => {
+                  setIsEditing(true);
+                  router.setParams({ edit: 'true' });
+                }}
                 accessibilityLabel="Chỉnh sửa nhật ký"
               />
             )
@@ -386,6 +390,7 @@ export default function LogDetailScreen() {
 
           <JournalEntryForm
             logId={id}
+            pinSetupReturnTo={editReturnTo}
             initialMood={formData.mood}
             initialNote={formData.note}
             initialPhotos={formData.photos}

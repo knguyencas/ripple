@@ -22,12 +22,7 @@ import {
 import api from '../../../services/core/api';
 import AppBackButton from '../../../components/shared/AppBackButton';
 import { useAuthStore } from '../../../stores/auth.store';
-import {
-  hasCompleteMediaKeyEnvelope,
-  hydrateMediaKeyFromStorage,
-  isMediaKeyUnlocked,
-  rewrapMediaKey,
-} from '../../../services/journal/media-crypto.service';
+import { hasCompleteMediaKeyEnvelope } from '../../../services/journal/media-crypto.service';
 
 export default function SecurityScreen() {
   const [current, setCurrent] = useState('');
@@ -35,6 +30,8 @@ export default function SecurityScreen() {
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const user = useAuthStore((s) => s.user);
+  const hasPin = hasCompleteMediaKeyEnvelope(user);
 
   const handleSave = async () => {
     setError('');
@@ -57,31 +54,12 @@ export default function SecurityScreen() {
 
     setSaving(true);
     try {
-      const user = useAuthStore.getState().user;
-      const payload: Record<string, unknown> = {
+      // Path 2: password CHỈ dùng để auth, không liên quan đến media envelope.
+      // → Đổi password thuần, không cần re-wrap envelope.
+      await api.put('/users/password', {
         currentPassword: current,
         newPassword: next,
-      };
-      let newEnvelope: Awaited<ReturnType<typeof rewrapMediaKey>> | null = null;
-
-      if (hasCompleteMediaKeyEnvelope(user)) {
-        if (!isMediaKeyUnlocked()) {
-          await hydrateMediaKeyFromStorage();
-        }
-        if (!isMediaKeyUnlocked()) {
-          setError('Để bảo vệ media đã mã hoá, vui lòng đăng xuất và đăng nhập lại trước khi đổi mật khẩu.');
-          setSaving(false);
-          return;
-        }
-        newEnvelope = await rewrapMediaKey(next);
-        Object.assign(payload, newEnvelope);
-      }
-
-      await api.put('/users/password', payload);
-
-      if (newEnvelope) {
-        await useAuthStore.getState().updateUser(newEnvelope);
-      }
+      });
 
       Alert.alert('Thành công', 'Mật khẩu đã được thay đổi.', [
         { text: 'OK', onPress: () => router.back() },
@@ -156,6 +134,22 @@ export default function SecurityScreen() {
                 <Text style={ps.saveBtnText}>Đổi mật khẩu</Text>
               )}
             </TouchableOpacity>
+
+            {hasPin ? (
+              <TouchableOpacity
+                style={[ps.saveBtn, { marginTop: 16, backgroundColor: '#5B7E91' }]}
+                onPress={() => router.push('/tabs/profile/change-pin')}
+              >
+                <Text style={ps.saveBtnText}>Đổi PIN nhật ký</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[ps.saveBtn, { marginTop: 16, backgroundColor: '#2E6F8E' }]}
+                onPress={() => router.push('/auth/setup-pin')}
+              >
+                <Text style={ps.saveBtnText}>Tạo PIN bảo vệ media</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

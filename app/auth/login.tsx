@@ -11,11 +11,8 @@ import api from '../../services/core/api';
 import { useAuthStore } from '../../stores/auth.store';
 import { AppleIcon, GoogleIcon } from '../../components/shared/AppIcons';
 import AuthBackdrop from '../../components/auth/AuthBackdrop';
-import {
-  createMediaKeyEnvelope,
-  hasCompleteMediaKeyEnvelope,
-  unlockMediaKeyFromPassword,
-} from '../../services/journal/media-crypto.service';
+import { hasCompleteMediaKeyEnvelope } from '../../services/journal/media-crypto.service';
+import { setPendingAuth } from '../../services/auth/pending-auth';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -41,20 +38,17 @@ export default function LoginScreen() {
     try {
       const res = await api.post('/auth/login', { username, password });
       const token = res.data.token;
-      let user = res.data.user;
+      const user = res.data.user;
 
       if (hasCompleteMediaKeyEnvelope(user)) {
-        await unlockMediaKeyFromPassword(password, user);
+        // Có envelope → cần PIN để unlock. Stash token+user, qua màn unlock-pin.
+        setPendingAuth({ token, user });
+        router.replace('/auth/unlock-pin');
       } else {
-        const envelope = await createMediaKeyEnvelope(password);
-        const keyRes = await api.put('/users/media-key', envelope, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        user = { ...user, ...keyRes.data };
+        // Legacy/no-envelope user (cực hiếm sau khi tách flow). Login thẳng.
+        await setAuth(token, user);
+        router.replace('/tabs/home');
       }
-
-      await setAuth(token, user);
-      router.replace('/tabs/home');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Đăng nhập thất bại');
     } finally {
@@ -99,6 +93,13 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={loading}
           />
+
+          <TouchableOpacity
+            style={styles.btnSecondary}
+            onPress={() => router.push('/auth/forgot-password')}
+          >
+            <Text style={styles.btnSecondaryLink}>Quên mật khẩu?</Text>
+          </TouchableOpacity>
 
           <View style={styles.socialSection}>
             <View style={styles.socialDividerRow}>

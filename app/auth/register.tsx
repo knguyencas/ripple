@@ -7,20 +7,16 @@ import { router } from 'expo-router';
 import { authStyles as styles } from '../../styles/auth/auth.styles';
 import Button from '../../components/shared/Button';
 import Input from '../../components/shared/Input';
-import api from '../../services/core/api';
-import { useAuthStore } from '../../stores/auth.store';
 import AppBackButton from '../../components/shared/AppBackButton';
 import { AppleIcon, GoogleIcon } from '../../components/shared/AppIcons';
 import AuthBackdrop from '../../components/auth/AuthBackdrop';
-import { createMediaKeyEnvelope } from '../../services/journal/media-crypto.service';
+import api from '../../services/core/api';
+import { useAuthStore } from '../../stores/auth.store';
 
 function friendlyRegisterError(error: unknown): string {
   const raw =
-    (error as any)?.response?.data?.error ||
-    (error as any)?.message ||
-    '';
+    (error as any)?.response?.data?.error || (error as any)?.message || '';
   const message = String(raw).toLowerCase();
-
   if (message.includes('username') || message.includes('tên đăng nhập')) {
     return 'Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác.';
   }
@@ -28,21 +24,20 @@ function friendlyRegisterError(error: unknown): string {
     return 'Email đã được sử dụng. Vui lòng nhập email khác.';
   }
   if (message.includes('unique') || message.includes('tồn tại')) {
-    return 'Tên đăng nhập hoặc email đã tồn tại. Vui lòng nhập lại.';
+    return 'Tên đăng nhập hoặc email đã tồn tại.';
   }
-
   return raw || 'Đăng ký thất bại. Vui lòng thử lại.';
 }
 
 export default function RegisterScreen() {
   const [form, setForm] = useState({
-  email: '',
-  username: '',
-  password: '',
-});
+    email: '',
+    username: '',
+    password: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const setAuth = useAuthStore((s) => s.setAuth);
 
   const update = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -56,17 +51,29 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!form.username || !form.password) {
-      setError('Vui lòng điền đầy đủ thông tin');
+      setError('Vui lòng điền tên đăng nhập và mật khẩu');
+      return;
+    }
+    if (form.password.length < 6) {
+      setError('Mật khẩu tối thiểu 6 ký tự');
+      return;
+    }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError('Email không hợp lệ');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      const mediaKeyEnvelope = await createMediaKeyEnvelope(form.password);
-      const res = await api.post('/auth/register', { ...form, ...mediaKeyEnvelope });
+      // KHÔNG kèm envelope — PIN sẽ tạo sau khi user lần đầu dùng media
+      const res = await api.post('/auth/register', {
+        username: form.username,
+        password: form.password,
+        ...(form.email ? { email: form.email } : {}),
+      });
       await setAuth(res.data.token, res.data.user);
       router.replace('/auth/display-name');
-    } catch (err: any) {
+    } catch (err) {
       setError(friendlyRegisterError(err));
     } finally {
       setLoading(false);
@@ -96,6 +103,11 @@ export default function RegisterScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          {!form.email && (
+            <Text style={styles.warning}>
+              ⚠️ Không có email = không khôi phục được mật khẩu nếu quên.
+            </Text>
+          )}
 
           <Input
             label="Tên người dùng"

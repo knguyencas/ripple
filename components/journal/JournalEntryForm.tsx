@@ -9,6 +9,7 @@ import MoodWheel, { MOODS } from '../mood/MoodWheel';
 import api from '../../services/core/api';
 import { journalFormStyles as s, J } from '../../styles/journal/journal.styles';
 import { uploadLogMedia, type LogMediaUploadInput } from '../../services/journal/log-media.service';
+import { ensurePinSetup } from '../../services/auth/ensure-pin-setup';
 import { MicLineIcon } from '../shared/AppIcons';
 
 export interface AudioItem extends LogMediaUploadInput {
@@ -30,6 +31,7 @@ export interface JournalFormData {
 
 interface Props {
   logId?:         string;
+  pinSetupReturnTo?: string;
   initialMood?:   typeof MOODS[0] | null;
   initialNote?:   string;
   initialPhotos?: PhotoItem[];
@@ -39,6 +41,7 @@ interface Props {
 
 export default function JournalEntryForm({
   logId,
+  pinSetupReturnTo,
   initialMood   = null,
   initialNote   = '',
   initialPhotos = [],
@@ -54,6 +57,8 @@ export default function JournalEntryForm({
 
   const [recording,   setRecording]   = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingBusy, setRecordingBusy] = useState(false);
+  const recordingBusyRef = useRef(false);
   const recordAnim = useRef(new Animated.Value(1)).current;
   const recordPulseStyle = useMemo(() => ({ transform: [{ scale: recordAnim }] }), [recordAnim]);
 
@@ -88,41 +93,62 @@ export default function JournalEntryForm({
   }, []);
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Cần quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      quality: 0.8,
-    });
-    if (result.canceled) return;
+    if (uploadingPhoto) return;
+    if (!(await ensurePinSetup(pinSetupReturnTo))) return;
 
-    const slots   = (9 - photos.length);
-    const picked: PhotoItem[] = result.assets.slice(0, slots).map((asset) => ({
-      uri: asset.uri,
-      uploaded: false,
-      file: asset.file,
-      fileName: asset.fileName,
-      mimeType: asset.mimeType,
-    }));
-
-    if (logId) {
-      setUploadingPhoto(true);
-      const uploaded: PhotoItem[] = [];
-      for (const photo of picked) {
-        const res = await uploadLogMedia(logId, photo, 'photo');
-        uploaded.push(res
-          ? { ...photo, id: res.id, uploaded: true }
-          : photo
-        );
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Cần quyền truy cập', 'Vui lòng cấp quyền truy cập thư viện ảnh.');
+        return;
       }
-      setPhotos(prev => [...prev, ...uploaded]);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+
+      const slots = 9 - photos.length;
+      if (slots <= 0) return;
+
+      const picked: PhotoItem[] = result.assets.slice(0, slots).map((asset) => ({
+        uri: asset.uri,
+        uploaded: false,
+        file: asset.file,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+      }));
+
+      if (logId) {
+        setUploadingPhoto(true);
+        const uploaded: PhotoItem[] = [];
+        let failed = 0;
+
+        for (const photo of picked) {
+          const res = await uploadLogMedia(logId, photo, 'photo');
+          if (!res) failed += 1;
+          uploaded.push(res
+            ? { ...photo, id: res.id, uploaded: true }
+            : photo
+          );
+        }
+
+        setPhotos(prev => [...prev, ...uploaded]);
+        if (failed > 0) {
+          Alert.alert(
+            'Một số ảnh chưa upload được',
+            'Ảnh đã được giữ lại trên màn hình. Bấm lưu lần nữa để thử upload lại.'
+          );
+        }
+      } else {
+        setPhotos(prev => [...prev, ...picked]);
+      }
+    } catch (error) {
+      console.warn('pickImage error:', error);
+      Alert.alert('Lỗi', 'Không thể thêm ảnh lúc này. Vui lòng thử lại.');
+    } finally {
       setUploadingPhoto(false);
-    } else {
-      setPhotos(prev => [...prev, ...picked]);
     }
   };
 
@@ -137,6 +163,10 @@ export default function JournalEntryForm({
   };
 
   const startRecording = async () => {
+    if (recordingBusyRef.current || recording) return;
+    if (!(await ensurePinSetup(pinSetupReturnTo))) return;
+    recordingBusyRef.current = true;
+    setRecordingBusy(true);
     try {
       const { status } = await Audio.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -151,14 +181,30 @@ export default function JournalEntryForm({
       setIsRecording(true);
     } catch {
       Alert.alert('Lỗi', 'Không thể bắt đầu thu âm.');
+    } finally {
+      recordingBusyRef.current = false;
+      setRecordingBusy(false);
     }
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
+    if (!recording || recordingBusyRef.current) return;
+    const currentRecording = recording;
+    recordingBusyRef.current = true;
+    setRecordingBusy(true);
+    setRecording(null);
+    setIsRecording(false);
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      try {
+        await currentRecording.stopAndUnloadAsync();
+      } catch (error: any) {
+        const message = String(error?.message ?? error);
+        if (!message.includes('already been unloaded')) {
+          throw error;
+        }
+      }
+
+      const uri = currentRecording.getURI();
       if (!uri) return;
 
       if (logId) {
@@ -170,10 +216,10 @@ export default function JournalEntryForm({
       }
       setAudios(prev => [...prev, { uri, label: `Ghi âm ${prev.length + 1}` }]);
     } catch (e) {
-      console.error('Stop recording error:', e);
+      console.warn('Stop recording error:', e);
     } finally {
-      setRecording(null);
-      setIsRecording(false);
+      recordingBusyRef.current = false;
+      setRecordingBusy(false);
     }
   };
 
@@ -320,6 +366,7 @@ export default function JournalEntryForm({
             <TouchableOpacity
               style={[s.micBtn, isRecording && s.micBtnActive]}
               onPress={isRecording ? stopRecording : startRecording}
+              disabled={recordingBusy}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel={isRecording ? 'Dừng thu âm' : 'Bắt đầu thu âm'}
@@ -346,4 +393,3 @@ export default function JournalEntryForm({
     </View>
   );
 }
-
