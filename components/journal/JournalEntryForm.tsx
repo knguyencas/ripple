@@ -64,15 +64,24 @@ export default function JournalEntryForm({
 
   const [playingIdx, setPlayingIdx] = useState<number | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
-
-  useEffect(() => { if (initialMood)            setSelectedMood(initialMood);     }, [initialMood?.name]);
-  useEffect(() => { if (initialNote)            setNote(initialNote);             }, [initialNote]);
-  useEffect(() => { if (initialPhotos.length)   setPhotos(initialPhotos);         }, [initialPhotos.length]);
-  useEffect(() => { if (initialAudios.length)   setAudios(initialAudios);         }, [initialAudios.length]);
+  const lastChangeRef = useRef<JournalFormData | null>(null);
 
   useEffect(() => {
-    onChange?.({ mood: selectedMood, note, photos, audios });
-  }, [selectedMood, note, photos, audios]);
+    const next = { mood: selectedMood, note, photos, audios };
+    const prev = lastChangeRef.current;
+    if (
+      prev &&
+      prev.mood === next.mood &&
+      prev.note === next.note &&
+      prev.photos === next.photos &&
+      prev.audios === next.audios
+    ) {
+      return;
+    }
+
+    lastChangeRef.current = next;
+    onChange?.(next);
+  }, [selectedMood, note, photos, audios, onChange]);
 
   useEffect(() => {
     if (isRecording) {

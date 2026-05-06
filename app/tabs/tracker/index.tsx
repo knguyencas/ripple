@@ -114,7 +114,16 @@ export default function TrackerScreen() {
   }, [logsByDate]);
 
   const handleSummary = useCallback((summary: DailySummary) => {
-    setDailySummary(summary);
+    setDailySummary((prev) => (
+      prev.doneCount === summary.doneCount &&
+      prev.totalCount === summary.totalCount &&
+      prev.percent === summary.percent &&
+      prev.nextTask === summary.nextTask &&
+      prev.recommendation === summary.recommendation &&
+      prev.ctaLabel === summary.ctaLabel
+        ? prev
+        : summary
+    ));
   }, []);
 
   const scrollToChecklist = () => {

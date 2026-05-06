@@ -26,14 +26,22 @@ export default function JournalScreen() {
   const [logs, setLogs]           = useState<Log[]>([]);
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const todayJournal = useTodayJournal();
 
   const fetchLogs = async () => {
     try {
       const logsRes = await api.get('/logs?limit=50');
-      setLogs(logsRes.data ?? []);
+      const nextLogs = Array.isArray(logsRes.data)
+        ? logsRes.data
+        : logsRes.data?.logs ?? [];
+      setLogs(nextLogs);
+      setLoadError(false);
     } catch (e) {
-      console.error('fetchLogs error:', e);
+      const status = (e as any)?.response?.status;
+      const data = (e as any)?.response?.data;
+      console.error('fetchLogs error:', status ?? 'no-status', data ?? (e as any)?.message ?? e);
+      setLoadError(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -91,7 +99,12 @@ export default function JournalScreen() {
           </TouchableOpacity>
         </View>
 
-        {logs.length === 0 ? (
+        {loadError && logs.length === 0 ? (
+          <View style={s.empty}>
+            <Text style={s.emptyTitle}>Không tải được nhật ký</Text>
+            <Text style={s.emptyText}>Kiểm tra backend/đăng nhập rồi kéo xuống để thử lại.</Text>
+          </View>
+        ) : logs.length === 0 ? (
           <View style={s.empty}>
             <Text style={s.emptyIcon}></Text>
             <Text style={s.emptyTitle}>Chưa có nhật ký nào</Text>

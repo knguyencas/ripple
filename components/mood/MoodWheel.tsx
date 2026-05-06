@@ -320,10 +320,11 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
   const wheelRotation = useRef(new Animated.Value(initDeg)).current;
   const currentDeg   = useRef(initDeg);
   const lastX        = useRef(0);
+  const useNativeDriver = Platform.OS !== 'web';
 
   useEffect(() => {
     Animated.spring(slideAnim, {
-      toValue: 0, tension: 60, friction: 12, useNativeDriver: Platform.OS !== 'web',
+      toValue: 0, tension: 60, friction: 12, useNativeDriver,
     }).start();
   }, []);
 
@@ -350,7 +351,7 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
     const snapped = getSnappedDegree(safeCurrentDeg, safeIdx, DEG_PER_ITEM);
     currentDeg.current = snapped;
     Animated.spring(wheelRotation, {
-      toValue: snapped, tension: 80, friction: 10, useNativeDriver: Platform.OS !== 'web',
+      toValue: snapped, tension: 80, friction: 10, useNativeDriver,
     }).start();
     setCurrentIdx(safeIdx);
   };
@@ -382,12 +383,12 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
   const currentMood = MOODS[safeCurrentIdx] ?? MOODS[INITIAL_IDX];
 
   const handleConfirm = () => {
-    Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver: false })
+    Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver })
       .start(() => onConfirm(currentMood));
   };
 
   const handleClose = () => {
-    Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver: false })
+    Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver })
       .start(onClose);
   };
 

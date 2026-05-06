@@ -33,7 +33,7 @@ export default function NewJournalScreen() {
     Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web' }).start();
     const timer = setTimeout(() => {
       Animated.timing(toastAnim, { toValue: 0, duration: 250, useNativeDriver: Platform.OS !== 'web' })
-        .start(() => { setToastVisible(false); router.navigate('/tabs/journal'); });
+        .start(() => { setToastVisible(false); router.replace('/tabs/journal'); });
     }, 1800);
     return () => clearTimeout(timer);
   }, [toastVisible]);
@@ -54,7 +54,8 @@ export default function NewJournalScreen() {
         await api.put(`/logs/${logId}`, payload);
       } else {
         const res = await api.post('/logs', payload);
-        logId = res.data?.id ?? null;
+        const createdLog = res.data?.log ?? res.data;
+        logId = createdLog?.id ?? null;
         if (logId) setCreatedLogId(logId);
       }
 
@@ -122,7 +123,7 @@ export default function NewJournalScreen() {
 
   const handleCancel = () => {
     if (!canSave) {
-      router.navigate('/tabs/journal');
+      router.replace('/tabs/journal');
       return;
     }
     Alert.alert(
@@ -130,7 +131,7 @@ export default function NewJournalScreen() {
       'Bạn đã nhập một số nội dung. Bạn có muốn lưu lại không?',
       [
         { text: 'Huỷ', style: 'cancel' },
-        { text: 'Không lưu', style: 'destructive', onPress: () => router.navigate('/tabs/journal') },
+        { text: 'Không lưu', style: 'destructive', onPress: () => router.replace('/tabs/journal') },
         { text: 'Lưu', onPress: handleSubmit },
       ]
     );
