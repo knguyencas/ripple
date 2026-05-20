@@ -1,21 +1,34 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, TouchableOpacity,
-  ActivityIndicator, Alert, Animated, ScrollView, Platform,
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  ScrollView,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import JournalEntryForm, { JournalFormData } from '../../../components/journal/JournalEntryForm';
 import api from '../../../services/core/api';
 import { uploadLogMedia } from '../../../services/journal/log-media.service';
-import { journalHeaderStyles as h, journalToastStyles as t, journalNewStyles as s } from '../../../styles/journal/journal.styles';
+import {
+  journalHeaderStyles as h,
+  journalToastStyles as t,
+  journalNewStyles as s,
+} from '../../../styles/journal/journal.styles';
 import { CheckLineIcon } from '../../../components/shared/AppIcons';
 
 export default function NewJournalScreen() {
   const [formData, setFormData] = useState<JournalFormData>({
-    mood: null, note: '', photos: [], audios: [],
+    mood: null,
+    note: '',
+    photos: [],
+    audios: [],
   });
-  const [loading, setLoading]         = useState(false);
+  const [loading, setLoading] = useState(false);
   const [createdLogId, setCreatedLogId] = useState<string | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const toastAnim = useRef(new Animated.Value(0)).current;
@@ -30,13 +43,23 @@ export default function NewJournalScreen() {
   useEffect(() => {
     if (!toastVisible) return;
     toastAnim.setValue(0);
-    Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: Platform.OS !== 'web' }).start();
+    Animated.timing(toastAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
     const timer = setTimeout(() => {
-      Animated.timing(toastAnim, { toValue: 0, duration: 250, useNativeDriver: Platform.OS !== 'web' })
-        .start(() => { setToastVisible(false); router.replace('/tabs/journal'); });
+      Animated.timing(toastAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: Platform.OS !== 'web',
+      }).start(() => {
+        setToastVisible(false);
+        router.replace('/tabs/journal');
+      });
     }, 1800);
     return () => clearTimeout(timer);
-  }, [toastVisible]);
+  }, [toastVisible, toastAnim]);
 
   const handleSubmit = async () => {
     if (!canSave || loading) return;
@@ -44,10 +67,10 @@ export default function NewJournalScreen() {
     try {
       let logId = createdLogId;
       const payload = {
-        mood:      formData.mood?.name  ?? 'neutral',
+        mood: formData.mood?.name ?? 'neutral',
         moodScore: formData.mood?.score ?? 3,
-        factors:   [],
-        note:      formData.note.trim() || null,
+        factors: [],
+        note: formData.note.trim() || null,
       };
 
       if (logId) {
@@ -109,7 +132,7 @@ export default function NewJournalScreen() {
           'Đã có nhật ký hôm nay',
           'Bạn muốn chỉnh sửa không?',
           [
-            { text: 'Huỷ', style: 'cancel' },
+            { text: 'Hủy', style: 'cancel' },
             { text: 'Chỉnh sửa', onPress: () => router.replace(`/tabs/journal/${existingId}?edit=true`) },
           ]
         );
@@ -121,29 +144,42 @@ export default function NewJournalScreen() {
     }
   };
 
+  const leaveWithoutSaving = () => {
+    router.replace('/tabs/journal');
+  };
+
   const handleCancel = () => {
     if (!canSave) {
-      router.replace('/tabs/journal');
+      leaveWithoutSaving();
       return;
     }
+
+    if (Platform.OS === 'web') {
+      const discard = window.confirm('Bạn đã nhập nội dung. Rời khỏi màn này và không lưu?');
+      if (discard) leaveWithoutSaving();
+      return;
+    }
+
     Alert.alert(
       'Lưu nhật ký hôm nay?',
       'Bạn đã nhập một số nội dung. Bạn có muốn lưu lại không?',
       [
-        { text: 'Huỷ', style: 'cancel' },
-        { text: 'Không lưu', style: 'destructive', onPress: () => router.replace('/tabs/journal') },
+        { text: 'Hủy', style: 'cancel' },
+        { text: 'Không lưu', style: 'destructive', onPress: leaveWithoutSaving },
         { text: 'Lưu', onPress: handleSubmit },
       ]
     );
   };
 
   const dateStr = new Date().toLocaleDateString('vi-VN', {
-    weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
   });
 
   return (
     <SafeAreaView style={s.safe}>
-
       <View style={h.header}>
         <TouchableOpacity onPress={handleCancel} style={h.headerBtn}>
           <Text style={h.headerBtnText}>‹</Text>
@@ -178,10 +214,20 @@ export default function NewJournalScreen() {
 
       {toastVisible && (
         <Animated.View
-          style={[t.toast, {
-            opacity: toastAnim,
-            transform: [{ translateY: toastAnim.interpolate({ inputRange: [0,1], outputRange: [20,0] }) }],
-          }]}
+          style={[
+            t.toast,
+            {
+              opacity: toastAnim,
+              transform: [
+                {
+                  translateY: toastAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [20, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
         >
           <Text style={t.toastIcon}>OK</Text>
           <View>
@@ -190,7 +236,6 @@ export default function NewJournalScreen() {
           </View>
         </Animated.View>
       )}
-
     </SafeAreaView>
   );
 }
