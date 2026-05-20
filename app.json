@@ -36,9 +36,7 @@
       "permissions": [
         "android.permission.ACTIVITY_RECOGNITION",
         "android.permission.health.READ_STEPS",
-        "android.permission.health.READ_SLEEP",
-        "android.permission.health.WRITE_STEPS",
-        "android.permission.health.WRITE_SLEEP"
+        "android.permission.health.READ_SLEEP"
       ]
     },
     "web": {
