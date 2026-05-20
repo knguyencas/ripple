@@ -153,6 +153,7 @@ export default function SleepManualModal({ visible, onClose, onSaved }: Props) {
                   data={TIME_PICKER_HOURS}
                   selected={bedHour}
                   onChange={setBedHour}
+                  unit="giờ"
                 />
                 <Text style={s.colon}>:</Text>
                 <Column
@@ -160,9 +161,12 @@ export default function SleepManualModal({ visible, onClose, onSaved }: Props) {
                   data={TIME_PICKER_MINUTES}
                   selected={bedMinute}
                   onChange={(value) => setBedMinute(roundToClosestMinute(value, TIME_PICKER_MINUTES))}
+                  unit="phút"
                 />
               </View>
             </View>
+
+            <View style={s.groupDivider} />
 
             <View style={s.timeGroup}>
               <Text style={s.timeLabel}>Giờ dậy</Text>
@@ -172,6 +176,7 @@ export default function SleepManualModal({ visible, onClose, onSaved }: Props) {
                   data={TIME_PICKER_HOURS}
                   selected={wakeHour}
                   onChange={setWakeHour}
+                  unit="giờ"
                 />
                 <Text style={s.colon}>:</Text>
                 <Column
@@ -179,6 +184,7 @@ export default function SleepManualModal({ visible, onClose, onSaved }: Props) {
                   data={TIME_PICKER_MINUTES}
                   selected={wakeMinute}
                   onChange={(value) => setWakeMinute(roundToClosestMinute(value, TIME_PICKER_MINUTES))}
+                  unit="phút"
                 />
               </View>
             </View>
@@ -215,6 +221,7 @@ interface ColumnProps {
   data: number[];
   selected: number;
   onChange: (value: number) => void;
+  unit: string;
 }
 
 function loopedData(data: number[]): number[] {
@@ -236,7 +243,7 @@ function scrollLoopToValue(
 }
 
 const Column = forwardRef<FlatList<number>, ColumnProps>(function Column(
-  { data, selected, onChange },
+  { data, selected, onChange, unit },
   ref
 ) {
   const items = useMemo(() => loopedData(data), [data]);
@@ -278,13 +285,19 @@ const Column = forwardRef<FlatList<number>, ColumnProps>(function Column(
         })}
         ListHeaderComponent={<View style={s.listSpacer} />}
         ListFooterComponent={<View style={s.listSpacer} />}
-        renderItem={({ item }) => (
-          <View style={s.item}>
-            <Text style={[s.itemText, item === selected && s.itemTextActive]}>
-              {String(item).padStart(2, '0')}
-            </Text>
-          </View>
-        )}
+        renderItem={({ item }) => {
+          const active = item === selected;
+          return (
+            <View style={s.item}>
+              <View style={s.itemContent}>
+                <Text style={[s.itemText, active && s.itemTextActive]}>
+                  {String(item).padStart(2, '0')}
+                </Text>
+                <Text style={[s.itemUnit, active && s.itemUnitActive]}>{unit}</Text>
+              </View>
+            </View>
+          );
+        }}
       />
     </View>
   );
