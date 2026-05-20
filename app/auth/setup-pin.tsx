@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { authStyles as styles } from '../../styles/auth/auth.styles';
@@ -105,27 +104,36 @@ export default function SetupPinScreen() {
     setLoading(true);
     try {
       const envelope = await createMediaKeyEnvelope(pin);
-      await api.put('/users/media-key', envelope);
-      await useAuthStore.getState().updateUser(envelope);
+      const res = await api.put('/users/media-key', envelope);
+      await useAuthStore.getState().updateUser(res.data ?? envelope);
 
-      Alert.alert(
-        'Đã tạo PIN',
-        'Từ giờ ảnh và ghi âm bạn upload sẽ được mã hoá bằng PIN này.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              if (params.returnTo) {
-                router.replace(params.returnTo as any);
-              } else {
-                router.back();
-              }
-            },
-          },
-        ]
-      );
+      if (params.returnTo) {
+        router.replace(params.returnTo as any);
+      } else {
+        router.back();
+      }
     } catch (err: any) {
-      setError(err?.response?.data?.error || err?.message || 'Tạo PIN thất bại');
+      console.error('[setup-pin] handleSubmit failed:', {
+        status: err?.response?.status,
+        data: err?.response?.data,
+        message: err?.message,
+        name: err?.name,
+      });
+      const beError = err?.response?.data?.error;
+      const httpStatus = err?.response?.status;
+      let userMessage = 'Tạo PIN thất bại. Vui lòng thử lại.';
+      if (beError) {
+        userMessage = beError;
+      } else if (httpStatus === 401) {
+        userMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+      } else if (httpStatus === 0 || err?.message?.includes('Network')) {
+        userMessage = 'Không kết nối được server. Kiểm tra mạng và thử lại.';
+      } else if (err?.message?.includes('encryption is not available')) {
+        userMessage = 'Module mã hoá chưa sẵn sàng. Vui lòng rebuild dev-client.';
+      } else if (err?.message) {
+        userMessage = err.message;
+      }
+      setError(userMessage);
     } finally {
       setLoading(false);
     }
@@ -169,7 +177,7 @@ export default function SetupPinScreen() {
             <>
               <PinDigitInput value={pin} onChange={setPin} autoFocus />
               <Text style={styles.hint}>
-                ⚠️ PIN này KHÁC mật khẩu đăng nhập. Nếu quên PIN sau khi đăng xuất,{'\n'}
+                PIN này KHÁC mật khẩu đăng nhập. Nếu quên PIN sau khi đăng xuất,{'\n'}
                 bạn sẽ MẤT toàn bộ ảnh và ghi âm trong nhật ký.
               </Text>
               {error ? <Text style={styles.error}>{error}</Text> : null}

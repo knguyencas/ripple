@@ -139,25 +139,35 @@ async function derivePasswordKey(password: string, salt: Uint8Array) {
   );
 }
 
-async function setMediaKey(rawKey: Uint8Array, persist = true) {
+/**
+ * Lưu mediaKey CHỈ trong RAM (module-scope variable).
+ * KHÔNG persist vào SecureStore/Keychain — buộc user nhập PIN lại mỗi lần
+ * relaunch app, theo chính sách bảo mật yêu cầu.
+ *
+ * `persist` param giữ lại cho backward compat nhưng luôn ignored.
+ */
+async function setMediaKey(rawKey: Uint8Array, _persist = true) {
   mediaKeyBytes = rawKey;
   mediaCryptoKey = await importAesKey(rawKey, ['encrypt', 'decrypt']);
-  if (persist) {
-    await storage.set(STORAGE_KEY, bytesToBase64(rawKey));
-  }
 }
 
+/**
+ * Trước đây hydrate mediaKey từ Keychain. Giờ chính sách "PIN once per launch"
+ * → không persist → hàm này luôn return false. Giữ lại để không break callers.
+ *
+ * Cleanup: xoá storage entry cũ nếu còn tồn tại từ phiên trước.
+ */
 export async function hydrateMediaKeyFromStorage() {
-  const stored = await storage.get(STORAGE_KEY);
-  if (!stored) return false;
-  await setMediaKey(base64ToBytes(stored), false);
-  return true;
+  // Clean stale key từ phiên trước (nếu app từng persist trong build cũ)
+  await storage.delete(STORAGE_KEY).catch(() => {});
+  return false;
 }
 
 export async function clearStoredMediaKey() {
   mediaKeyBytes = null;
   mediaCryptoKey = null;
-  await storage.delete(STORAGE_KEY);
+  // Vẫn xoá storage entry phòng có rác từ build cũ
+  await storage.delete(STORAGE_KEY).catch(() => {});
 }
 
 export function isMediaKeyUnlocked() {

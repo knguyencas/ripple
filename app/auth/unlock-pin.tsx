@@ -85,17 +85,20 @@ function PinDigitInput({ value, onChange, autoFocus, disabled }: PinDigitInputPr
 
 export default function UnlockPinScreen() {
   const setAuth = useAuthStore((s) => s.setAuth);
+  const storedToken = useAuthStore((s) => s.token);
+  const storedUser = useAuthStore((s) => s.user);
 
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lockMessage, setLockMessage] = useState<string | null>(null);
+  const [showForgotPin, setShowForgotPin] = useState(false);
 
   useEffect(() => {
-    if (!peekPendingAuth()) {
+    if (!peekPendingAuth() && (!storedToken || !storedUser)) {
       router.replace('/auth/login');
     }
-  }, []);
+  }, [storedToken, storedUser]);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,7 +132,9 @@ export default function UnlockPinScreen() {
       return;
     }
 
-    const pending = peekPendingAuth();
+    const pending = peekPendingAuth() ?? (
+      storedToken && storedUser ? { token: storedToken, user: storedUser } : null
+    );
     if (!pending) {
       router.replace('/auth/login');
       return;
@@ -141,10 +146,8 @@ export default function UnlockPinScreen() {
       if (!ok) throw new Error('Envelope không hợp lệ');
 
       await resetPinFailState();
-      const consumed = consumePendingAuth();
-      if (consumed) {
-        await setAuth(consumed.token, consumed.user);
-      }
+      const consumed = consumePendingAuth() ?? pending;
+      await setAuth(consumed.token, consumed.user);
       router.replace('/tabs/home');
     } catch {
       const { failCount, lockedMs } = await recordPinFail();
@@ -156,14 +159,24 @@ export default function UnlockPinScreen() {
       } else {
         setError(`Sai PIN. Bạn còn ${5 - failCount} lần thử trước khi bị khoá.`);
       }
+      if (failCount >= 1) setShowForgotPin(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancel = () => {
+  const handleCancel = async () => {
     clearPendingAuth();
+    if (storedToken) {
+      router.replace('/tabs/home');
+      return;
+    }
     router.replace('/auth/login');
+  };
+
+  const handleForgotPin = () => {
+    // Giữ pendingAuth để forgot-pin có context user (cần để gọi API reset)
+    router.push('/auth/forgot-pin');
   };
 
   const disabled = loading || Boolean(lockMessage);
@@ -204,6 +217,15 @@ export default function UnlockPinScreen() {
             onPress={handleUnlock}
             disabled={disabled}
           />
+
+          {showForgotPin && (
+            <Text
+              style={[styles.btnSecondaryLink, { textAlign: 'center', marginTop: 16 }]}
+              onPress={handleForgotPin}
+            >
+              Quên PIN? Đặt lại bằng mật khẩu
+            </Text>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

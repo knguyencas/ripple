@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Href, router } from 'expo-router';
 import {
   StyleProp,
   Text,
@@ -11,6 +11,7 @@ import { appBackButtonStyles as styles } from '../../styles/shared/app-buttons.s
 type AppBackButtonProps = {
   label?: string;
   onPress?: () => void;
+  fallbackHref?: Href;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
   accessibilityLabel?: string;
@@ -18,14 +19,29 @@ type AppBackButtonProps = {
 
 export default function AppBackButton({
   label = '‹',
-  onPress = () => router.back(),
+  onPress,
+  fallbackHref = '/tabs/home',
   style,
   textStyle,
   accessibilityLabel = 'Quay lại',
 }: AppBackButtonProps) {
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+      return;
+    }
+
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace(fallbackHref);
+  };
+
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       style={[styles.button, style]}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
