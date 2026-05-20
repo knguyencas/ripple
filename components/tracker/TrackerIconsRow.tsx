@@ -14,6 +14,7 @@ import WaterDetailPanel from './detail/WaterDetailPanel';
 import SleepDetailPanel from './detail/SleepDetailPanel';
 import MeditationDetailPanel from './detail/MeditationDetailPanel';
 import MoodDetailPanel from './detail/MoodDetailPanel';
+import MeditationModal from './MeditationModal';
 import {
   MeditationLineIcon,
   MoodLineIcon,
@@ -59,10 +60,14 @@ interface Props {
 
 export default function TrackerIconsRow({ scoreByDate }: Props) {
   const [activeId, setActiveId] = useState<ActivityId | null>(null);
+  const [meditationModalVisible, setMeditationModalVisible] = useState(false);
 
   const handlePress = (cell: Cell) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setActiveId((prev) => (prev === cell.id ? null : cell.id));
+    if (cell.id === 'meditation') {
+      setMeditationModalVisible(true);
+    }
   };
 
   const closePanel = () => {
@@ -121,6 +126,11 @@ export default function TrackerIconsRow({ scoreByDate }: Props) {
           {renderPanelBody()}
         </View>
       )}
+
+      <MeditationModal
+        visible={meditationModalVisible}
+        onClose={() => setMeditationModalVisible(false)}
+      />
     </View>
   );
 }
