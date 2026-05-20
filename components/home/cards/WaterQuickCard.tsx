@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import api from '../../../services/core/api';
+import { isApiBackendAvailable } from '../../../services/core/api-connectivity';
 import { toDateKey } from '../../../utils/shared/date.utils';
 import {
   quickActionStyles as s,
   QuickActionAccent,
 } from '../../../styles/home/quick-actions.styles';
 import QuickActionCard from '../QuickActionCard';
+import { WaterDropLineIcon } from '../../shared/AppIcons';
 
 const palette = QuickActionAccent.water;
 
@@ -25,6 +27,7 @@ export default function WaterQuickCard({ onTaskStateChanged }: Props) {
 
   const fetchToday = useCallback(async () => {
     try {
+      if (!(await isApiBackendAvailable())) return;
       const res = await api.get('/water/today', { params: { localDate: todayKey() } });
       setGlasses(Number(res.data?.glasses ?? 0));
       setGoal(Number(res.data?.goal ?? 8));
@@ -47,6 +50,7 @@ export default function WaterQuickCard({ onTaskStateChanged }: Props) {
       const v = pendingValue.current;
       if (v == null) return;
       try {
+        if (!(await isApiBackendAvailable())) return;
         await api.put('/water', { localDate: todayKey(), glasses: v });
       } catch {
       }
@@ -71,7 +75,7 @@ export default function WaterQuickCard({ onTaskStateChanged }: Props) {
       title="Uống nước"
       goalLabel={`Mục tiêu ${goal} ly`}
       accent="water"
-      iconLetter="💧"
+      icon={<WaterDropLineIcon size={22} color={palette.primary} />}
     >
       <View style={s.valueRow}>
         <Text style={[s.valueBig, { color: palette.primary }]}>{glasses}</Text>

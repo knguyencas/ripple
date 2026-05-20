@@ -2,13 +2,24 @@ import axios from 'axios';
 import { Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../stores/auth.store';
+import {
+  API_BASE_URL,
+  createApiUnavailableError,
+  isApiConnectivityError,
+  isApiMarkedUnavailable,
+  markApiBackendUnavailable,
+} from './api-connectivity';
 
 const api = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_URL,
+  baseURL: API_BASE_URL,
   timeout: 30000,
 });
 
 api.interceptors.request.use((config) => {
+  if (isApiMarkedUnavailable()) {
+    throw createApiUnavailableError();
+  }
+
   let token = useAuthStore.getState().token;
 
   if (!token && Platform.OS === 'web') {
@@ -57,6 +68,10 @@ const promptReLogin = () => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (isApiConnectivityError(error)) {
+      markApiBackendUnavailable();
+    }
+
     const status = error?.response?.status;
     if (status === 401 && !handling401) {
       handling401 = true;

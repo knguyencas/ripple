@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../../stores/auth.store';
 import api from '../../../services/core/api';
+import { isApiBackendAvailable } from '../../../services/core/api-connectivity';
 import MoodWheel, { MOODS, SORA_MOOD_EXPRESSIONS } from '../../../components/mood/MoodWheel';
 import HomeHeader from '../../../components/home/HomeHeader';
 import StatsRow from '../../../components/home/StatsRow';
@@ -46,6 +47,11 @@ export default function HomeScreen() {
   const loadHomeData = useCallback(async (active = true) => {
     try {
       await pingStreak();
+      if (!(await isApiBackendAvailable())) {
+        if (active) setDailyDoneCount(0);
+        return;
+      }
+
       const localDate = toDateKey(new Date());
       const [todayRes, logs7Res, statsRes, waterRes, healthToday, meditToday] = await Promise.all([
         api.get('/logs/today'),

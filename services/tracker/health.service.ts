@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import api from '../core/api';
+import { isApiBackendAvailable } from '../core/api-connectivity';
 import { toDateKey } from '../../utils/shared/date.utils';
 import { setHealthSyncStatus } from './health-sync-preference.service';
 
@@ -347,6 +348,7 @@ export async function syncSleepToBackend(): Promise<SleepToday | null> {
 
 export async function fetchHealthSummary(days = 7) {
   try {
+    if (!(await isApiBackendAvailable())) return null;
     const res = await api.get('/health/summary', { params: { days } });
     return res.data as {
       days: number;
@@ -360,6 +362,7 @@ export async function fetchHealthSummary(days = 7) {
 
 export async function fetchHealthToday() {
   try {
+    if (!(await isApiBackendAvailable())) return null;
     const res = await api.get('/health/today');
     return res.data as {
       date: string;

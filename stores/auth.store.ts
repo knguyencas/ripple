@@ -3,6 +3,10 @@ import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import {
+  API_BASE_URL,
+  isApiBackendAvailable,
+} from '../services/core/api-connectivity';
+import {
   clearStoredMediaKey,
   hydrateMediaKeyFromStorage,
   type MediaKeyEnvelope,
@@ -142,9 +146,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     const today = todayKey();
 
     try {
-      const baseURL = process.env.EXPO_PUBLIC_API_URL;
+      if (!(await isApiBackendAvailable())) return;
       const res = await axios.post(
-        `${baseURL}/users/streak/ping`,
+        `${API_BASE_URL}/users/streak/ping`,
         { localDate: today },
         { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }
       );

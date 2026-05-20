@@ -1,4 +1,5 @@
 import api from '../core/api';
+import { isApiBackendAvailable } from '../core/api-connectivity';
 
 export interface AppNotification {
   id: string;
@@ -16,6 +17,10 @@ export interface NotificationsResponse {
 }
 
 export async function fetchNotifications(limit = 50): Promise<NotificationsResponse> {
+  if (!(await isApiBackendAvailable())) {
+    return { items: [], unreadCount: 0 };
+  }
+
   const res = await api.get('/notifications', { params: { limit } });
   return {
     items: res.data?.items ?? [],
