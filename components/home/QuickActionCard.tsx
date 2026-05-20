@@ -13,6 +13,7 @@ interface Props {
   isNew?: boolean;
   dashed?: boolean;
   iconLetter?: string;
+  icon?: ReactNode;
   children: ReactNode;
 }
 
@@ -23,6 +24,7 @@ export default function QuickActionCard({
   isNew,
   dashed,
   iconLetter,
+  icon,
   children,
 }: Props) {
   const palette = QuickActionAccent[accent];
@@ -36,9 +38,11 @@ export default function QuickActionCard({
     >
       <View style={s.headerRow}>
         <View style={[s.iconBox, { backgroundColor: palette.bg }]}>
-          <Text style={[s.iconLetter, { color: palette.primary }]}>
-            {iconLetter ?? title.slice(0, 1)}
-          </Text>
+          {icon ?? (
+            <Text style={[s.iconLetter, { color: palette.primary }]}>
+              {iconLetter ?? title.slice(0, 1)}
+            </Text>
+          )}
         </View>
         <View style={s.titleBlock}>
           <View style={s.titleRow}>
