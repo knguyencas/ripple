@@ -41,6 +41,7 @@ const TRACK_R      = (MOOD_WHEEL_RADIUS + MOOD_WHEEL_INNER_RADIUS) / 2;
 const ITEM_SIZE    = 46;
 const DEG_PER_ITEM = 360 / N;
 const INITIAL_IDX  = 5;
+const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 export const SORA_MOOD_EXPRESSIONS: SoraMoodExpression[] = [
   'numb',
   'vague',
@@ -320,11 +321,9 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
   const wheelRotation = useRef(new Animated.Value(initDeg)).current;
   const currentDeg   = useRef(initDeg);
   const lastX        = useRef(0);
-  const useNativeDriver = Platform.OS !== 'web';
-
   useEffect(() => {
     Animated.spring(slideAnim, {
-      toValue: 0, tension: 60, friction: 12, useNativeDriver,
+      toValue: 0, tension: 60, friction: 12, useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
   }, []);
 
@@ -351,7 +350,7 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
     const snapped = getSnappedDegree(safeCurrentDeg, safeIdx, DEG_PER_ITEM);
     currentDeg.current = snapped;
     Animated.spring(wheelRotation, {
-      toValue: snapped, tension: 80, friction: 10, useNativeDriver,
+      toValue: snapped, tension: 80, friction: 10, useNativeDriver: USE_NATIVE_DRIVER,
     }).start();
     setCurrentIdx(safeIdx);
   };
@@ -360,6 +359,9 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder:  () => true,
     onPanResponderGrant: (e: GestureResponderEvent) => {
+      wheelRotation.stopAnimation((value) => {
+        if (Number.isFinite(value)) currentDeg.current = value;
+      });
       const x = getGestureX(e);
       if (x == null) return;
       lastX.current = x;
@@ -383,12 +385,12 @@ export default function MoodWheel({ onConfirm, onClose }: Props) {
   const currentMood = MOODS[safeCurrentIdx] ?? MOODS[INITIAL_IDX];
 
   const handleConfirm = () => {
-    Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver })
+    Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver: USE_NATIVE_DRIVER })
       .start(() => onConfirm(currentMood));
   };
 
   const handleClose = () => {
-    Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver })
+    Animated.timing(slideAnim, { toValue: 400, duration: 200, useNativeDriver: USE_NATIVE_DRIVER })
       .start(onClose);
   };
 

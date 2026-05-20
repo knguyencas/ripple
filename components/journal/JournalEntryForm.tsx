@@ -5,12 +5,13 @@ import { View, Text, TextInput, TouchableOpacity,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
-import MoodWheel, { MOODS } from '../mood/MoodWheel';
+import MoodWheel, { MOODS, SORA_MOOD_EXPRESSIONS } from '../mood/MoodWheel';
 import api from '../../services/core/api';
 import { journalFormStyles as s, J } from '../../styles/journal/journal.styles';
 import { uploadLogMedia, type LogMediaUploadInput } from '../../services/journal/log-media.service';
 import { ensurePinSetup } from '../../services/auth/ensure-pin-setup';
 import { MicLineIcon } from '../shared/AppIcons';
+import { SoraMoodIcon, type SoraMoodExpression } from '../shared/Sora';
 
 export interface AudioItem extends LogMediaUploadInput {
   id?:   string;
@@ -65,6 +66,16 @@ export default function JournalEntryForm({
   const [playingIdx, setPlayingIdx] = useState<number | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
   const lastChangeRef = useRef<JournalFormData | null>(null);
+  const selectedMoodIdx = selectedMood
+    ? MOODS.findIndex((mood) => mood.name === selectedMood.name)
+    : -1;
+  const selectedMoodExpression: SoraMoodExpression =
+    selectedMoodIdx >= 0 ? (SORA_MOOD_EXPRESSIONS[selectedMoodIdx] ?? 'neutral') : 'neutral';
+
+  useEffect(() => { if (initialMood)            setSelectedMood(initialMood);     }, [initialMood?.name]);
+  useEffect(() => { if (initialNote)            setNote(initialNote);             }, [initialNote]);
+  useEffect(() => { if (initialPhotos.length)   setPhotos(initialPhotos);         }, [initialPhotos.length]);
+  useEffect(() => { if (initialAudios.length)   setAudios(initialAudios);         }, [initialAudios.length]);
 
   useEffect(() => {
     const next = { mood: selectedMood, note, photos, audios };
@@ -291,19 +302,23 @@ export default function JournalEntryForm({
       >
         {selectedMood ? (
           <View style={s.moodRow}>
-            <Text style={s.moodEmoji}>{selectedMood.emoji}</Text>
+            <View style={s.moodIconWrap}>
+              <SoraMoodIcon size={36} expression={selectedMoodExpression} />
+            </View>
             <View style={s.moodTextWrap}>
-              <Text style={s.moodName}>{selectedMood.name}</Text>
-              <Text style={s.moodDesc}>{selectedMood.desc}</Text>
+              <Text style={s.moodName} numberOfLines={1}>{selectedMood.name}</Text>
+              <Text style={s.moodDesc} numberOfLines={1}>{selectedMood.desc}</Text>
             </View>
             <Text style={s.moodChange}>Đổi ›</Text>
           </View>
         ) : (
           <View style={s.moodRow}>
-            <Text style={s.moodEmoji}></Text>
+            <View style={s.moodIconWrap}>
+              <Text style={s.moodPlaceholder}>?</Text>
+            </View>
             <View style={s.moodTextWrap}>
-              <Text style={s.moodName}>Tâm trạng hôm nay</Text>
-              <Text style={s.moodDesc}>Nhấn để chọn qua mood wheel</Text>
+              <Text style={s.moodName} numberOfLines={1}>Tâm trạng hôm nay</Text>
+              <Text style={s.moodDesc} numberOfLines={1}>Nhấn để chọn qua mood wheel</Text>
             </View>
             <Text style={s.moodChevron}>›</Text>
           </View>

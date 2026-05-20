@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
 
 const PROFILE_BG = '#F4F8FB';
-const GLASS_BG = 'rgba(255,255,255,0.78)';
+const GLASS_BG = '#FFFFFF';
 const GLASS_BORDER = 'rgba(124,179,212,0.42)';
 const BLUE = '#2E6F8E';
 const BLUE_SOFT = '#DCECF5';
