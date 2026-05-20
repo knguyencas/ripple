@@ -159,6 +159,13 @@ export default function TabsLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="meditation-session"
+        options={{
+          href: null,
+          tabBarStyle: styles.tabBarHidden,
+        }}
+      />
     </Tabs>
   );
 }

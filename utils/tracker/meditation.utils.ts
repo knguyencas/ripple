@@ -6,7 +6,7 @@ export function formatCountdown(secondsLeft: number): string {
 }
 
 export function formatFileSize(mb: number): string {
-  if (!Number.isFinite(mb) || mb <= 0) return '—';
+  if (!Number.isFinite(mb) || mb <= 0) return '-';
   if (mb < 1) return `${Math.round(mb * 1000)} KB`;
   return `${mb.toFixed(1)} MB`;
 }
