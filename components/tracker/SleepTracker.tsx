@@ -9,6 +9,7 @@ import {
   fetchHealthToday,
   isHealthAvailable,
   ensureSleepPermission,
+  checkSleepPermission,
 } from '../../services/tracker/health.service';
 import { EncouragementHint } from './MoodEncouragement';
 import type { SeverityBand } from '../../services/tracker/encouragement.service';
@@ -91,7 +92,12 @@ export default function SleepTracker({ hint, band }: Props = {}) {
     useCallback(() => {
       (async () => {
         const status = await load();
-        if (status === 'enabled' && isHealthAvailable()) await sync();
+        // Dùng checkSleepPermission (không show dialog) khi auto-load lúc mount
+        if (status === 'enabled' && isHealthAvailable()) {
+          const alreadyGranted = await checkSleepPermission();
+          if (alreadyGranted) await sync();
+          else setPermissionDenied(true);
+        }
       })();
     }, [load, sync])
   );

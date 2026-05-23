@@ -83,52 +83,100 @@ async function ensureIosSleepPermission(): Promise<boolean> {
   }
 }
 
-async function ensureAndroidStepsPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false;
-  if (healthConnectStepsReady) return true;
+async function initAndroidHC(): Promise<{ HC: any } | null> {
+  if (Platform.OS !== 'android') return null;
   try {
     const HC = require('react-native-health-connect');
     const available = await HC.getSdkStatus();
-    if (available !== HC.SdkAvailabilityStatus.SDK_AVAILABLE) {
-      return false;
-    }
-
+    if (available !== HC.SdkAvailabilityStatus.SDK_AVAILABLE) return null;
     const init = await HC.initialize();
-    if (!init) return false;
+    if (!init) return null;
+    return { HC };
+  } catch {
+    return null;
+  }
+}
 
-    const granted = await HC.requestPermission([
+// Kiểm tra quyền đã cấp (không show dialog) — an toàn gọi lúc app mount
+async function checkAndroidStepsPermission(): Promise<boolean> {
+  if (healthConnectStepsReady) return true;
+  const ctx = await initAndroidHC();
+  if (!ctx) return false;
+  try {
+    const already = await ctx.HC.getGrantedPermissions();
+    healthConnectStepsReady = already?.some((p: any) => p.recordType === 'Steps') ?? false;
+    return healthConnectStepsReady;
+  } catch {
+    return false;
+  }
+}
+
+async function checkAndroidSleepPermission(): Promise<boolean> {
+  if (healthConnectSleepReady) return true;
+  const ctx = await initAndroidHC();
+  if (!ctx) return false;
+  try {
+    const already = await ctx.HC.getGrantedPermissions();
+    healthConnectSleepReady = already?.some((p: any) => p.recordType === 'SleepSession') ?? false;
+    return healthConnectSleepReady;
+  } catch {
+    return false;
+  }
+}
+
+// Xin quyền (show dialog) — chỉ gọi từ user action, không gọi lúc mount
+async function requestAndroidStepsPermission(): Promise<boolean> {
+  const ctx = await initAndroidHC();
+  if (!ctx) return false;
+  try {
+    const granted = await ctx.HC.requestPermission([
       { accessType: 'read', recordType: 'Steps' },
     ]);
     healthConnectStepsReady = granted?.some((item: any) => item.recordType === 'Steps') ?? false;
     return healthConnectStepsReady;
   } catch (e) {
-    console.warn('Health Connect steps init failed:', e);
+    console.warn('Health Connect steps requestPermission failed:', e);
     return false;
   }
 }
 
-async function ensureAndroidSleepPermission(): Promise<boolean> {
-  if (Platform.OS !== 'android') return false;
-  if (healthConnectSleepReady) return true;
+async function requestAndroidSleepPermission(): Promise<boolean> {
+  const ctx = await initAndroidHC();
+  if (!ctx) return false;
   try {
-    const HC = require('react-native-health-connect');
-    const available = await HC.getSdkStatus();
-    if (available !== HC.SdkAvailabilityStatus.SDK_AVAILABLE) {
-      return false;
-    }
-
-    const init = await HC.initialize();
-    if (!init) return false;
-
-    const granted = await HC.requestPermission([
+    const granted = await ctx.HC.requestPermission([
       { accessType: 'read', recordType: 'SleepSession' },
     ]);
     healthConnectSleepReady = granted?.some((item: any) => item.recordType === 'SleepSession') ?? false;
     return healthConnectSleepReady;
   } catch (e) {
-    console.warn('Health Connect sleep init failed:', e);
+    console.warn('Health Connect sleep requestPermission failed:', e);
     return false;
   }
+}
+
+async function ensureAndroidStepsPermission(): Promise<boolean> {
+  // Kiểm tra trước, chỉ xin nếu chưa có — tránh crash lateinit khi gọi lúc mount
+  const already = await checkAndroidStepsPermission();
+  if (already) return true;
+  return requestAndroidStepsPermission();
+}
+
+async function ensureAndroidSleepPermission(): Promise<boolean> {
+  const already = await checkAndroidSleepPermission();
+  if (already) return true;
+  return requestAndroidSleepPermission();
+}
+
+// Chỉ kiểm tra quyền đã cấp chưa, không show dialog — dùng khi auto-check lúc mount
+export async function checkStepsPermission(): Promise<boolean> {
+  if (Platform.OS === 'android') return checkAndroidStepsPermission();
+  return ensureStepsPermission(); // iOS: initHealthKit luôn safe
+}
+
+export async function checkSleepPermission(): Promise<boolean> {
+  if (Platform.OS === 'android') return checkAndroidSleepPermission();
+  return ensureSleepPermission();
 }
 
 export async function ensureStepsPermission(): Promise<boolean> {

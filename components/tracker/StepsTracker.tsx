@@ -9,6 +9,7 @@ import {
   fetchHealthToday,
   isHealthAvailable,
   ensureStepsPermission,
+  checkStepsPermission,
 } from '../../services/tracker/health.service';
 import { getHealthSyncStatus, type HealthSyncStatus } from '../../services/tracker/health-sync-preference.service';
 import { EncouragementHint } from './MoodEncouragement';
@@ -68,7 +69,13 @@ export default function StepsTracker({ hint, band }: Props = {}) {
     useCallback(() => {
       (async () => {
         const status = await load();
-        if (status === 'enabled' && isHealthAvailable()) await sync();
+        // Dùng checkStepsPermission (không show dialog) khi auto-load lúc mount
+        // Chỉ sync nếu quyền đã được cấp trước đó
+        if (status === 'enabled' && isHealthAvailable()) {
+          const alreadyGranted = await checkStepsPermission();
+          if (alreadyGranted) await sync();
+          else setPermissionDenied(true);
+        }
       })();
     }, [load, sync])
   );
