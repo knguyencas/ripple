@@ -11,6 +11,7 @@ import {
   ensureSleepPermission,
 } from '../../services/tracker/health.service';
 import { EncouragementHint } from './MoodEncouragement';
+import type { SeverityBand } from '../../services/tracker/encouragement.service';
 import { getHealthSyncStatus, type HealthSyncStatus } from '../../services/tracker/health-sync-preference.service';
 import SleepManualModal from './SleepManualModal';
 
@@ -18,6 +19,7 @@ const GOAL_MIN = 8 * 60;
 
 interface Props {
   hint?: string | null;
+  band?: SeverityBand;
 }
 
 function formatDuration(min: number) {
@@ -33,7 +35,7 @@ function formatClock(iso: string) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export default function SleepTracker({ hint }: Props = {}) {
+export default function SleepTracker({ hint, band }: Props = {}) {
   const [durationMin, setDurationMin] = useState<number | null>(null);
   const [bedtime, setBedtime] = useState<string | null>(null);
   const [wakeTime, setWakeTime] = useState<string | null>(null);
@@ -173,7 +175,7 @@ export default function SleepTracker({ hint }: Props = {}) {
         </>
       )}
 
-      <EncouragementHint message={hint ?? null} />
+      <EncouragementHint message={hint ?? null} band={band} />
       <SleepManualModal
         visible={manualVisible}
         onClose={() => setManualVisible(false)}

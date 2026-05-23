@@ -309,7 +309,9 @@ export default function TrackerScreen() {
               <MoodLineChart scoreByDate={scoreByDate} />
             </View>
 
-            {encouragement?.mood && <SoraMessage message={encouragement.mood} />}
+            {encouragement?.mood && (
+              <SoraMessage message={encouragement.mood} band={encouragement.debug?.band} />
+            )}
           </>
         )}
 

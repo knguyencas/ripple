@@ -6,15 +6,17 @@ import api from '../../services/core/api';
 import { waterTrackerStyles as s } from '../../styles/tracker/tracker.styles';
 import WaterGoalModal from './WaterGoalModal';
 import { EncouragementHint } from './MoodEncouragement';
+import type { SeverityBand } from '../../services/tracker/encouragement.service';
 import { toDateKey } from '../../utils/shared/date.utils';
 
 const todayKey = () => toDateKey(new Date());
 
 interface Props {
   hint?: string | null;
+  band?: SeverityBand;
 }
 
-export default function WaterTracker({ hint }: Props) {
+export default function WaterTracker({ hint, band }: Props) {
   const [glasses, setGlasses] = useState(0);
   const [goal, setGoal] = useState(8);
   const [avgGlasses, setAvgGlasses] = useState<number | null>(null);
@@ -147,7 +149,7 @@ export default function WaterTracker({ hint }: Props) {
         </View>
       )}
 
-      <EncouragementHint message={hint ?? null} />
+      <EncouragementHint message={hint ?? null} band={band} />
 
       <WaterGoalModal
         visible={goalModalVisible}

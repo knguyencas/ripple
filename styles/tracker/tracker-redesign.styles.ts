@@ -8,9 +8,9 @@ const STREAK = '#D85A30';
 const STREAK_SOFT = '#FFF0DC';
 const STREAK_SOFT_BORDER = '#FFE0B8';
 const STREAK_CARD = '#E8F0F7';
-const YELLOW_BG = '#FFF3CD';
-const YELLOW_TEXT = '#8B6F2A';
-const YELLOW_TITLE = '#5A4216';
+const YELLOW_BG = '#F6FBFD';
+const YELLOW_TEXT = '#536D7A';
+const YELLOW_TITLE = '#2E6F8E';
 
 export const trackerHeaderRedesignStyles = StyleSheet.create({
   wrap: {
@@ -381,15 +381,17 @@ export const yellowReminderStyles = StyleSheet.create({
     marginBottom: 0,
     backgroundColor: YELLOW_BG,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#DCECF5',
     padding: 18,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 14,
-    shadowColor: '#B07F1A',
-    shadowOffset: { width: -7, height: 4 },
-    shadowOpacity: 0.20,
-    shadowRadius: 16,
-    elevation: 5,
+    shadowColor: '#1A3A4A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   msgMascot: {
     width: 66,

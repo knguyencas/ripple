@@ -12,14 +12,16 @@ import {
 } from '../../services/tracker/health.service';
 import { getHealthSyncStatus, type HealthSyncStatus } from '../../services/tracker/health-sync-preference.service';
 import { EncouragementHint } from './MoodEncouragement';
+import type { SeverityBand } from '../../services/tracker/encouragement.service';
 
 const DEFAULT_GOAL = 8000;
 
 interface Props {
   hint?: string | null;
+  band?: SeverityBand;
 }
 
-export default function StepsTracker({ hint }: Props = {}) {
+export default function StepsTracker({ hint, band }: Props = {}) {
   const [steps, setSteps] = useState<number | null>(null);
   const [avgSteps, setAvgSteps] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,7 +138,7 @@ export default function StepsTracker({ hint }: Props = {}) {
         </>
       )}
 
-      <EncouragementHint message={hint ?? null} />
+      <EncouragementHint message={hint ?? null} band={band} />
     </View>
   );
 }
