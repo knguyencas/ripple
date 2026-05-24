@@ -5,10 +5,10 @@ import { TIME_PICKER_ITEM_HEIGHT } from '../../constants/profile/time-picker.con
 const BLUE = '#2E6F8E';
 const CARD = '#FFFFFF';
 const SOFT = '#EEF7FB';
-const WHEEL_BG = '#111C24';
-const WHEEL_PANEL = '#1A2832';
-const WHEEL_TEXT = '#EAF5F8';
-const WHEEL_MUTED = 'rgba(234,245,248,0.28)';
+const WHEEL_BG = '#F4F8FB';
+const WHEEL_PANEL = '#EEF6FA';
+const WHEEL_TEXT = '#1A3A5C';
+const WHEEL_MUTED = 'rgba(26,58,92,0.24)';
 
 export const sleepManualModalStyles = StyleSheet.create({
   overlay: {
@@ -104,60 +104,57 @@ export const sleepManualModalStyles = StyleSheet.create({
   pickerGrid: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    gap: 0,
+    gap: 10,
     backgroundColor: WHEEL_BG,
-    borderRadius: 22,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    shadowColor: '#0B1820',
-    shadowOpacity: 0.18,
-    shadowOffset: { width: 0, height: 8 },
-    shadowRadius: 18,
-    elevation: 4,
+    borderColor: '#E1EDF3',
+    padding: 8,
   },
   timeGroup: {
     flex: 1,
-    backgroundColor: 'transparent',
-    borderRadius: 16,
-    paddingHorizontal: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingTop: 10,
+    paddingBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5EFF5',
   },
   groupDivider: {
-    width: 1,
-    marginHorizontal: 8,
-    borderRadius: 1,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    display: 'none',
   },
   timeLabel: {
     fontFamily: 'Nunito_700Bold',
     fontSize: 12,
-    color: 'rgba(255,255,255,0.82)',
+    color: Colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   timeColumns: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 0,
+    height: TIME_PICKER_ITEM_HEIGHT * 5,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  groupSelector: {
+    position: 'absolute',
+    top: TIME_PICKER_ITEM_HEIGHT * 2,
+    left: 2,
+    right: 2,
+    height: TIME_PICKER_ITEM_HEIGHT,
+    borderRadius: 5,
+    backgroundColor: WHEEL_PANEL,
+    zIndex: 0,
   },
   wheelWrap: {
-    width: 62,
+    width: 48,
     height: TIME_PICKER_ITEM_HEIGHT * 5,
     overflow: 'hidden',
     position: 'relative',
-  },
-  selector: {
-    position: 'absolute',
-    top: TIME_PICKER_ITEM_HEIGHT * 2,
-    left: 0,
-    right: 0,
-    height: TIME_PICKER_ITEM_HEIGHT,
-    borderRadius: 12,
-    backgroundColor: WHEEL_PANEL,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
     zIndex: 1,
   },
   item: {
@@ -166,7 +163,7 @@ export const sleepManualModalStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   itemContent: {
-    minWidth: 58,
+    minWidth: 44,
     flexDirection: 'row',
     alignItems: 'baseline',
     justifyContent: 'center',
@@ -176,18 +173,19 @@ export const sleepManualModalStyles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     color: WHEEL_MUTED,
-    minWidth: 25,
-    textAlign: 'right',
+    minWidth: 34,
+    textAlign: 'center',
   },
   itemTextActive: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 20,
-    lineHeight: 25,
+    fontSize: 18,
+    lineHeight: 24,
     color: WHEEL_TEXT,
   },
   itemUnit: {
-    width: 25,
-    marginLeft: 3,
+    display: 'none',
+    width: 0,
+    marginLeft: 0,
     fontFamily: 'Nunito_600SemiBold',
     fontSize: 9,
     lineHeight: 11,
@@ -198,10 +196,11 @@ export const sleepManualModalStyles = StyleSheet.create({
   },
   colon: {
     fontFamily: 'Nunito_700Bold',
-    fontSize: 20,
-    lineHeight: 24,
-    color: 'rgba(234,245,248,0.86)',
+    fontSize: 18,
+    lineHeight: 22,
+    color: WHEEL_TEXT,
     paddingHorizontal: 0,
+    zIndex: 1,
   },
   listSpacer: {
     height: TIME_PICKER_ITEM_HEIGHT * 2,

@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, Alert,
+  KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { authStyles as styles } from '../../styles/auth/auth.styles';
 import Button from '../../components/shared/Button';
 import Input from '../../components/shared/Input';
 import AppBackButton from '../../components/shared/AppBackButton';
-import { AppleIcon, GoogleIcon } from '../../components/shared/AppIcons';
 import AuthBackdrop from '../../components/auth/AuthBackdrop';
 import api from '../../services/core/api';
 import { useAuthStore } from '../../stores/auth.store';
@@ -41,13 +40,6 @@ export default function RegisterScreen() {
 
   const update = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
-
-  const handleSocialAuth = (provider: 'Google' | 'Apple') => {
-    Alert.alert(
-      `Đăng ký bằng ${provider}`,
-      'Cần kết nối OAuth ở backend trước khi đăng ký bằng tài khoản này.'
-    );
-  };
 
   const handleRegister = async () => {
     if (!form.username || !form.password) {
@@ -105,7 +97,7 @@ export default function RegisterScreen() {
           />
           {!form.email && (
             <Text style={styles.warning}>
-              ⚠️ Không có email = không khôi phục được mật khẩu nếu quên.
+              Nếu không có email đồng nghĩa không thể khôi phục nếu quên mật khẩu.
             </Text>
           )}
 
@@ -132,34 +124,6 @@ export default function RegisterScreen() {
             onPress={handleRegister}
             disabled={loading}
           />
-
-          <View style={styles.socialSection}>
-            <View style={styles.socialDividerRow}>
-              <View style={styles.socialDivider} />
-              <Text style={styles.socialDividerText}>hoặc đăng ký với</Text>
-              <View style={styles.socialDivider} />
-            </View>
-
-            <View style={styles.socialRow}>
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialAuth('Google')}
-                activeOpacity={0.82}
-              >
-                <GoogleIcon size={20} />
-                <Text style={styles.socialButtonText}>Google</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialAuth('Apple')}
-                activeOpacity={0.82}
-              >
-                <AppleIcon size={20} />
-                <Text style={styles.socialButtonText}>Apple</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
           <TouchableOpacity
             style={styles.btnSecondary}

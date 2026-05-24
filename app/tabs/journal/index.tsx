@@ -6,6 +6,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import api from '../../../services/core/api';
+import { isApiConnectivityError } from '../../../services/core/api-connectivity';
+import { cacheGet, cacheSet } from '../../../services/core/cache.service';
 import { MOODS } from '../../../components/mood/MoodWheel';
 import { journalIndexStyles as s, J } from '../../../styles/journal/journal.styles';
 import { getMoodEmojiByName } from '../../../utils/shared/mood.utils';
@@ -27,7 +29,10 @@ export default function JournalScreen() {
   const [loading, setLoading]     = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [fromCache, setFromCache] = useState(false);
   const todayJournal = useTodayJournal();
+
+  const CACHE_KEY = 'journal_logs';
 
   const fetchLogs = async () => {
     try {
@@ -37,11 +42,24 @@ export default function JournalScreen() {
         : logsRes.data?.logs ?? [];
       setLogs(nextLogs);
       setLoadError(false);
+      setFromCache(false);
+      void cacheSet(CACHE_KEY, nextLogs);
     } catch (e) {
-      const status = (e as any)?.response?.status;
-      const data = (e as any)?.response?.data;
-      console.error('fetchLogs error:', status ?? 'no-status', data ?? (e as any)?.message ?? e);
-      setLoadError(true);
+      if (isApiConnectivityError(e)) {
+        const cached = await cacheGet<Log[]>(CACHE_KEY);
+        if (cached && cached.length > 0) {
+          setLogs(cached);
+          setFromCache(true);
+          setLoadError(false);
+        } else {
+          setLoadError(true);
+        }
+      } else {
+        const status = (e as any)?.response?.status;
+        const data = (e as any)?.response?.data;
+        console.error('fetchLogs error:', status ?? 'no-status', data ?? (e as any)?.message ?? e);
+        setLoadError(true);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -75,6 +93,14 @@ export default function JournalScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={J.btnBg} />
         }
       >
+
+        {fromCache && (
+          <View style={{ backgroundColor: '#FFF8E1', paddingVertical: 7, paddingHorizontal: 16 }}>
+            <Text style={{ fontSize: 12, color: '#856404', textAlign: 'center' }}>
+              Đang xem dữ liệu đã lưu · Kết nối mạng để cập nhật
+            </Text>
+          </View>
+        )}
 
         <View style={s.illustWrap}>
           <View style={s.illustHero}>

@@ -4,7 +4,6 @@ import { Typography } from '../../constants/typography';
 import { Spacing } from '../../constants/spacing';
 
 const AUTH_BLUE = '#2E6F8E';
-const AUTH_INPUT_BG = '#EAF7FB';
 const AUTH_INPUT_BORDER = '#DEE7ED';
 const WEB_INPUT_RESET = Platform.OS === 'web'
   ? ({ outlineStyle: 'none', outlineWidth: 0, boxShadow: 'none' } as any)
@@ -118,25 +117,27 @@ export const authStyles = StyleSheet.create({
   },
   pinDigitRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    marginBottom: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 18,
   },
   pinDigitBox: {
-    flex: 1,
-    height: 56,
-    borderWidth: 1,
-    borderColor: AUTH_INPUT_BORDER,
-    backgroundColor: AUTH_INPUT_BG,
-    borderRadius: 12,
+    width: 24,
+    height: 46,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
     textAlign: 'center',
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 26,
+    lineHeight: 32,
+    fontWeight: '700',
     color: Colors.textPrimary,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
   pinDigitBoxFilled: {
-    borderColor: AUTH_BLUE,
-    backgroundColor: '#FFFFFF',
+    color: AUTH_BLUE,
   },
   btnPrimary: {
     backgroundColor: Colors.teal,

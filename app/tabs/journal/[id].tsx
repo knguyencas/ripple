@@ -8,6 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Audio } from 'expo-av';
 import JournalEntryForm, { JournalFormData, AudioItem, PhotoItem } from '../../../components/journal/JournalEntryForm';
+import { SoraMoodIcon, type SoraMoodExpression } from '../../../components/shared/Sora';
+import { SORA_MOOD_EXPRESSIONS } from '../../../components/mood/MoodWheel';
 import {
   J,
   journalHeaderStyles as h,
@@ -16,6 +18,8 @@ import {
 } from '../../../styles/journal/journal.styles';
 import { MOODS } from '../../../components/mood/MoodWheel';
 import api from '../../../services/core/api';
+import { isApiConnectivityError } from '../../../services/core/api-connectivity';
+import { cacheGet, cacheSet } from '../../../services/core/cache.service';
 import { uploadLogMedia } from '../../../services/journal/log-media.service';
 import { decryptRemoteMedia, revokeDecryptedMediaUri } from '../../../services/journal/media-crypto.service';
 import AppIconButton from '../../../components/shared/AppIconButton';
@@ -28,6 +32,19 @@ import {
   PlayLineIcon,
 } from '../../../components/shared/AppIcons';
 import { confirmDestructiveAction } from '../../../utils/shared/confirm-action.utils';
+
+function softenMoodColor(hexColor: string) {
+  const hex = hexColor.replace('#', '');
+  if (!/^[0-9a-fA-F]{6}$/.test(hex)) return '#F1F6F8';
+
+  const amount = 0.24;
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const mix = (channel: number) => Math.round(255 - (255 - channel) * amount);
+
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
 
 export default function LogDetailScreen() {
   const router = useRouter();
@@ -44,6 +61,9 @@ export default function LogDetailScreen() {
   const [formData, setFormData] = useState<JournalFormData>({
     mood: null, note: '', photos: [], audios: [],
   });
+  const [initialData, setInitialData] = useState<JournalFormData>({
+    mood: null, note: '', photos: [], audios: [],
+  });
 
   const [viewerVisible, setViewerVisible] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
@@ -53,6 +73,7 @@ export default function LogDetailScreen() {
   const audioSoundRef = useRef<Audio.Sound | null>(null);
   const decryptedMediaUrisRef = useRef<string[]>([]);
   const [toastVisible, setToastVisible] = useState(false);
+  const [fromCache, setFromCache] = useState(false);
   const toastAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => { fetchLog(); }, [id]);
@@ -189,14 +210,35 @@ export default function LogDetailScreen() {
         };
       })) as AudioItem[];
 
-      setFormData({
+      const loadedData: JournalFormData = {
         mood:   MOODS.find(m => m.name === data.mood) ?? null,
         note:   data.note ?? '',
         photos,
         audios,
-      });
-    } catch {
-      if (showErrorAlert && loading) {
+      };
+      setFormData(loadedData);
+      setInitialData(loadedData);
+      setFromCache(false);
+      void cacheSet(`journal_log_${id}`, { data, photos, audios });
+    } catch (e) {
+      if (isApiConnectivityError(e)) {
+        const cached = await cacheGet<{ data: any; photos: any[]; audios: any[] }>(`journal_log_${id}`);
+        if (cached) {
+          setLog(cached.data);
+          const loadedData: JournalFormData = {
+            mood:   MOODS.find(m => m.name === cached.data.mood) ?? null,
+            note:   cached.data.note ?? '',
+            photos: cached.photos,
+            audios: cached.audios,
+          };
+          setFormData(loadedData);
+          setInitialData(loadedData);
+          setFromCache(true);
+        } else if (showErrorAlert && loading) {
+          Alert.alert('Không có mạng', 'Entry này chưa được tải về trước đó.');
+          router.navigate('/tabs/journal');
+        }
+      } else if (showErrorAlert && loading) {
         Alert.alert('Lỗi', 'Không tải được nhật ký');
         router.navigate('/tabs/journal');
       }
@@ -338,6 +380,14 @@ export default function LogDetailScreen() {
     <SafeAreaView style={s.safe}>
 
 
+      {fromCache && (
+        <View style={{ backgroundColor: '#FFF8E1', paddingVertical: 7, paddingHorizontal: 16 }}>
+          <Text style={{ fontSize: 12, color: '#856404', textAlign: 'center' }}>
+            Đang xem dữ liệu đã lưu · Không thể chỉnh sửa khi offline
+          </Text>
+        </View>
+      )}
+
       <View style={h.header}>
         <TouchableOpacity onPress={handleBack} style={h.headerBtn}>
           <Text style={h.headerBtnText}>‹</Text>
@@ -352,7 +402,7 @@ export default function LogDetailScreen() {
             accessibilityLabel="Xoá nhật ký"
           />
 
-          {isToday && (
+          {isToday && !fromCache && (
             isEditing ? (
               <TouchableOpacity
                 style={[h.saveBtn, saving && h.saveBtnOff]}
@@ -390,22 +440,37 @@ export default function LogDetailScreen() {
           <JournalEntryForm
             logId={id}
             pinSetupReturnTo={editReturnTo}
-            initialMood={formData.mood}
-            initialNote={formData.note}
-            initialPhotos={formData.photos}
-            initialAudios={formData.audios}
+            initialMood={initialData.mood}
+            initialNote={initialData.note}
+            initialPhotos={initialData.photos}
+            initialAudios={initialData.audios}
             onChange={setFormData}
           />
         ) : (
 
           <>
 
-            <View style={[s.card, formData.mood && { backgroundColor: formData.mood.color + '33' }]}>
+            <View style={[
+              s.card,
+              s.moodSummaryCard,
+              formData.mood && { backgroundColor: softenMoodColor(formData.mood.color) },
+            ]}>
               <View style={s.moodRow}>
-                <Text style={s.moodEmoji}>{formData.mood?.emoji ?? ''}</Text>
-                <View style={s.flex1}>
-                  <Text style={s.moodName}>{formData.mood?.name ?? log.mood ?? 'Chưa có tâm trạng'}</Text>
-                  <Text style={s.moodDesc}>{formData.mood?.desc ?? ''}</Text>
+                <View style={s.moodIconWrap}>
+                  {formData.mood ? (
+                    <SoraMoodIcon
+                      size={36}
+                      expression={
+                        (SORA_MOOD_EXPRESSIONS[
+                          MOODS.findIndex(m => m.name === formData.mood?.name)
+                        ] ?? 'neutral') as SoraMoodExpression
+                      }
+                    />
+                  ) : null}
+                </View>
+                <View style={s.moodTextWrap}>
+                  <Text style={s.moodName} numberOfLines={1}>{formData.mood?.name ?? log.mood ?? 'Chưa có tâm trạng'}</Text>
+                  <Text style={s.moodDesc} numberOfLines={1}>{formData.mood?.desc ?? ''}</Text>
                 </View>
               </View>
             </View>
@@ -482,27 +547,6 @@ export default function LogDetailScreen() {
             )}
 
 
-            {log.nlpEmotion && (
-              <View style={[s.card, s.nlpCard]}>
-                <Text style={s.cardTitle}>AI phân tích cảm xúc</Text>
-                <View style={s.nlpRow}>
-                  <Text style={s.nlpLabel}>Cảm xúc</Text>
-                  <Text style={s.nlpValue}>{log.nlpEmotion}</Text>
-                </View>
-                {log.nlpScore != null && (
-                  <View style={s.nlpRow}>
-                    <Text style={s.nlpLabel}>PHQ score</Text>
-                    <Text style={s.nlpValue}>{Number(log.nlpScore).toFixed(1)}</Text>
-                  </View>
-                )}
-                {log.alertLevel && (
-                  <View style={s.nlpRow}>
-                    <Text style={s.nlpLabel}>Mức độ</Text>
-                    <Text style={[s.nlpValue, s.alertValue]}>{log.alertLevel}</Text>
-                  </View>
-                )}
-              </View>
-            )}
           </>
         )}
 

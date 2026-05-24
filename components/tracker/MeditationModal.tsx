@@ -121,6 +121,7 @@ export default function MeditationModal({ visible, onClose }: Props) {
       } catch (e) {
         setPreviewingSoundId(null);
         console.warn('Preview meditation sound failed:', e);
+        Alert.alert('Không nghe thử được', 'Tải âm thanh về máy trước để nghe thử khi offline, hoặc kiểm tra kết nối mạng.');
       }
     },
     [canCacheAudio, downloadedSet, stopPreview]

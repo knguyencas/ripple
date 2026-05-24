@@ -73,6 +73,9 @@ function PinDigitInput({ value, onChange, autoFocus, disabled }: PinDigitInputPr
             onKeyPress={({ nativeEvent }) => handleKey(i, nativeEvent.key)}
             keyboardType="number-pad"
             secureTextEntry
+            placeholder="-"
+            placeholderTextColor="#1A3A5C"
+            caretHidden
             maxLength={1}
             autoFocus={autoFocus && i === 0}
             editable={!disabled}

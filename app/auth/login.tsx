@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ScrollView, Alert,
+  KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { authStyles as styles } from '../../styles/auth/auth.styles';
@@ -9,7 +9,6 @@ import Button from '../../components/shared/Button';
 import Input from '../../components/shared/Input';
 import api from '../../services/core/api';
 import { useAuthStore } from '../../stores/auth.store';
-import { AppleIcon, GoogleIcon } from '../../components/shared/AppIcons';
 import AuthBackdrop from '../../components/auth/AuthBackdrop';
 import { hasCompleteMediaKeyEnvelope } from '../../services/journal/media-crypto.service';
 import { setPendingAuth } from '../../services/auth/pending-auth';
@@ -20,13 +19,6 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const setAuth = useAuthStore((state) => state.setAuth);
-
-  const handleSocialAuth = (provider: 'Google' | 'Apple') => {
-    Alert.alert(
-      `Đăng nhập bằng ${provider}`,
-      'Cần kết nối OAuth ở backend trước khi đăng nhập bằng tài khoản này.'
-    );
-  };
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -101,33 +93,6 @@ export default function LoginScreen() {
             <Text style={styles.btnSecondaryLink}>Quên mật khẩu?</Text>
           </TouchableOpacity>
 
-          <View style={styles.socialSection}>
-            <View style={styles.socialDividerRow}>
-              <View style={styles.socialDivider} />
-              <Text style={styles.socialDividerText}>hoặc tiếp tục với</Text>
-              <View style={styles.socialDivider} />
-            </View>
-
-            <View style={styles.socialRow}>
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialAuth('Google')}
-                activeOpacity={0.82}
-              >
-                <GoogleIcon size={20} />
-                <Text style={styles.socialButtonText}>Google</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={() => handleSocialAuth('Apple')}
-                activeOpacity={0.82}
-              >
-                <AppleIcon size={20} />
-                <Text style={styles.socialButtonText}>Apple</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
           <TouchableOpacity
             style={styles.btnSecondary}

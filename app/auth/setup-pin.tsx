@@ -62,6 +62,9 @@ function PinDigitInput({ value, onChange, autoFocus }: PinDigitInputProps) {
             onKeyPress={({ nativeEvent }) => handleKey(i, nativeEvent.key)}
             keyboardType="number-pad"
             secureTextEntry
+            placeholder="-"
+            placeholderTextColor="#1A3A5C"
+            caretHidden
             maxLength={1}
             autoFocus={autoFocus && i === 0}
           />
@@ -129,7 +132,7 @@ export default function SetupPinScreen() {
       } else if (httpStatus === 0 || err?.message?.includes('Network')) {
         userMessage = 'Không kết nối được server. Kiểm tra mạng và thử lại.';
       } else if (err?.message?.includes('encryption is not available')) {
-        userMessage = 'Module mã hoá chưa sẵn sàng. Vui lòng rebuild dev-client.';
+        userMessage = 'Module mã hoá chưa sẵn sàng. Vui lòng thử lại sau.';
       } else if (err?.message) {
         userMessage = err.message;
       }

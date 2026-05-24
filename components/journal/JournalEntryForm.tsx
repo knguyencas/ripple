@@ -54,6 +54,7 @@ export default function JournalEntryForm({
   const [note,         setNote]         = useState(initialNote);
   const [photos,       setPhotos]       = useState<PhotoItem[]>(initialPhotos);
   const [audios,       setAudios]       = useState<AudioItem[]>(initialAudios);
+  const noteInputRef = useRef<import('react-native').TextInput>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [recording,   setRecording]   = useState<Audio.Recording | null>(null);
@@ -73,7 +74,12 @@ export default function JournalEntryForm({
     selectedMoodIdx >= 0 ? (SORA_MOOD_EXPRESSIONS[selectedMoodIdx] ?? 'neutral') : 'neutral';
 
   useEffect(() => { if (initialMood)            setSelectedMood(initialMood);     }, [initialMood?.name]);
-  useEffect(() => { if (initialNote)            setNote(initialNote);             }, [initialNote]);
+  useEffect(() => {
+    if (initialNote) {
+      setNote(initialNote);
+      noteInputRef.current?.setNativeProps({ text: initialNote });
+    }
+  }, [initialNote]);
   useEffect(() => { if (initialPhotos.length)   setPhotos(initialPhotos);         }, [initialPhotos.length]);
   useEffect(() => { if (initialAudios.length)   setAudios(initialAudios);         }, [initialAudios.length]);
 
@@ -328,11 +334,12 @@ export default function JournalEntryForm({
       <View style={s.card}>
         <Text style={s.cardTitle}>Viết về ngày hôm nay</Text>
         <TextInput
+          ref={noteInputRef}
           style={s.textInput}
           placeholder="Nhập những gì bạn đang nghĩ..."
           placeholderTextColor={J.placeholder}
           multiline
-          value={note}
+          defaultValue={note}
           onChangeText={setNote}
           textAlignVertical="top"
         />

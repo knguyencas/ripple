@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -22,6 +22,13 @@ export default function ResetPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+
+  // Hiển thị lỗi ngay khi màn hình mở nếu thiếu token (link không hợp lệ)
+  useEffect(() => {
+    if (!params.token) {
+      setError('Link khôi phục không hợp lệ hoặc đã hết hạn. Vui lòng gửi lại yêu cầu.');
+    }
+  }, [params.token]);
 
   const handleSubmit = async () => {
     setError('');

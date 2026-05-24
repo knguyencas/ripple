@@ -148,6 +148,7 @@ export default function SleepManualModal({ visible, onClose, onSaved }: Props) {
             <View style={s.timeGroup}>
               <Text style={s.timeLabel}>Giờ ngủ</Text>
               <View style={s.timeColumns}>
+                <View style={s.groupSelector} pointerEvents="none" />
                 <Column
                   ref={bedHourRef}
                   data={TIME_PICKER_HOURS}
@@ -171,6 +172,7 @@ export default function SleepManualModal({ visible, onClose, onSaved }: Props) {
             <View style={s.timeGroup}>
               <Text style={s.timeLabel}>Giờ dậy</Text>
               <View style={s.timeColumns}>
+                <View style={s.groupSelector} pointerEvents="none" />
                 <Column
                   ref={wakeHourRef}
                   data={TIME_PICKER_HOURS}
@@ -266,7 +268,6 @@ const Column = forwardRef<FlatList<number>, ColumnProps>(function Column(
 
   return (
     <View style={s.wheelWrap}>
-      <View style={s.selector} pointerEvents="none" />
       <FlatList
         ref={ref}
         data={items}
