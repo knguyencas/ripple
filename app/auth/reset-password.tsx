@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -15,25 +15,19 @@ import AppBackButton from '../../components/shared/AppBackButton';
 import AuthBackdrop from '../../components/auth/AuthBackdrop';
 
 export default function ResetPasswordScreen() {
-  const params = useLocalSearchParams<{ token?: string }>();
+  const params = useLocalSearchParams<{ email?: string }>();
 
+  const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
 
-  // Hiển thị lỗi ngay khi màn hình mở nếu thiếu token (link không hợp lệ)
-  useEffect(() => {
-    if (!params.token) {
-      setError('Link khôi phục không hợp lệ hoặc đã hết hạn. Vui lòng gửi lại yêu cầu.');
-    }
-  }, [params.token]);
-
   const handleSubmit = async () => {
     setError('');
-    if (!params.token) {
-      setError('Link khôi phục không hợp lệ — thiếu token');
+    if (!code || code.length !== 6) {
+      setError('Vui lòng nhập mã 6 số từ email');
       return;
     }
     if (password.length < 6) {
@@ -48,7 +42,8 @@ export default function ResetPasswordScreen() {
     setLoading(true);
     try {
       await api.post('/auth/reset-password', {
-        token: params.token,
+        email: params.email,
+        token: code,
         newPassword: password,
       });
       setDone(true);
@@ -74,7 +69,7 @@ export default function ResetPasswordScreen() {
           <AppBackButton style={styles.registerBackButton} />
           <Text style={styles.title}>Đặt mật khẩu mới</Text>
           <Text style={styles.subtitle}>
-            Nhập mật khẩu mới cho tài khoản
+            Nhập mã 6 số đã gửi đến {params.email}
           </Text>
         </View>
 
@@ -94,6 +89,14 @@ export default function ResetPasswordScreen() {
             </>
           ) : (
             <>
+              <Input
+                label="Mã xác nhận"
+                value={code}
+                onChangeText={setCode}
+                placeholder="6 số từ email"
+                keyboardType="number-pad"
+                maxLength={6}
+              />
               <Input
                 label="Mật khẩu mới"
                 value={password}
